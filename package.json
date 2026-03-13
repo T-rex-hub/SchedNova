@@ -1,0 +1,16 @@
+{
+  "name": "schednova",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "backend": "uvicorn backend.main:app --reload",
+    "frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "dependencies": {
+    "react-router-dom": "^7.9.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,769 @@
+# INPUT FORMAT
+
+{
+  "batches": [
+    "Batch1", "Batch2", "Batch3", "Batch4", 
+    "Batch5", "Batch6", "Batch7", "Batch8", 
+    "Batch9", "Batch10", "Batch11", "Batch12"
+  ],
+  "timeslots": 35,
+  "rooms": {
+    "LH1": "Lecture",
+    "LH2": "Lecture",
+    "LH3": "Lecture",
+    "LH4": "Lecture",
+    "Lab1": "Lab",
+    "Lab2": "Lab",
+    "Lab3": "Lab"
+  },
+  "teachers": {
+    "Dr. Sharma": {
+      "subjects": ["Math", "Physics"],
+      "available_shifts": [0, 1, 2, 3, 4, 5, 6, ..., 34]
+    },
+    "Prof. Singh": {
+      "subjects": ["Chemistry", "Biology"],
+      "available_shifts": [0, 2, 4, 6, ..., 34]
+    },
+    "Dr. Gupta": {
+      "subjects": ["ComputerLab", "English"],
+      "available_shifts": [5, 6, 7, ..., 34]
+    },
+    "Dr. Verma": {
+      "subjects": ["Math", "Physics", "Chemistry", "English"],
+      "available_shifts": [0, 1, 2, ..., 29]
+    },
+    "Dr. Kapoor": {
+      "subjects": ["History", "Geography"],
+      "available_shifts": [0, 1, 2, ..., 34]
+    },
+    "Prof. Mehta": {
+      "subjects": ["ComputerLab", "Physics"],
+      "available_shifts": [10, 11, 12, ..., 34]
+    },
+    "Dr. Iyer": {
+      "subjects": ["English", "Biology"],
+      "available_shifts": [0, 1, ..., 19]
+    }
+  },
+  "subjects": {
+    "Math": {
+      "teachers": ["Dr. Sharma", "Dr. Verma"],
+      "room_type": "Lecture",
+      "per_week": 4
+    },
+    "Physics": {
+      "teachers": ["Dr. Sharma", "Dr. Verma", "Prof. Mehta"],
+      "room_type": "Lecture",
+      "per_week": 3
+    },
+    "Chemistry": {
+      "teachers": ["Prof. Singh", "Dr. Verma"],
+      "room_type": "Lecture",
+      "per_week": 3
+    },
+    "ComputerLab": {
+      "teachers": ["Dr. Gupta", "Prof. Mehta"],
+      "room_type": "Lab",
+      "per_week": 2
+    },
+    "English": {
+      "teachers": ["Dr. Verma", "Dr. Gupta", "Dr. Iyer"],
+      "room_type": "Lecture",
+      "per_week": 2
+    },
+    "Biology": {
+      "teachers": ["Prof. Singh", "Dr. Iyer"],
+      "room_type": "Lecture",
+      "per_week": 2
+    },
+    "History": {
+      "teachers": ["Dr. Kapoor"],
+      "room_type": "Lecture",
+      "per_week": 2
+    },
+    "Geography": {
+      "teachers": ["Dr. Kapoor"],
+      "room_type": "Lecture",
+      "per_week": 2
+    }
+  },
+  "batch_subjects": {
+    "Batch1": {"Math": 4, "Physics": 3, "English": 2},
+    "Batch2": {"Math": 3, "Chemistry": 3, "Biology": 2},
+    "Batch3": {"Physics": 2, "Chemistry": 3, "ComputerLab": 1},
+    "Batch4": {"Math": 3, "English": 2, "Biology": 2},
+    "Batch5": {"History": 2, "Geography": 2},
+    "Batch6": {"Math": 3, "Physics": 2, "Chemistry": 2},
+    "Batch7": {"English": 2, "Biology": 3, "History": 2},
+    "Batch8": {"ComputerLab": 1, "Physics": 3, "Geography": 2},
+    "Batch9": {"Math": 3, "Chemistry": 3, "History": 2},
+    "Batch10": {"Physics": 3, "Biology": 2, "English": 2},
+    "Batch11": {"Math": 2, "Chemistry": 2, "ComputerLab": 1},
+    "Batch12": {"History": 3, "English": 2, "Geography": 2}
+  },
+  "fixed_groups": {
+    "Math": [["Batch1", "Batch2"], ["Batch4", "Batch6"], ["Batch9", "Batch11"]],
+    "Biology": [["Batch2", "Batch4", "Batch7", "Batch10"]],
+    "Physics": [["Batch1"], ["Batch3"], ["Batch6"], ["Batch8"], ["Batch10"]],
+    "Chemistry": [["Batch2"], ["Batch3"], ["Batch6"], ["Batch9"], ["Batch11"]],
+    "English": [["Batch1"], ["Batch4"], ["Batch7"], ["Batch10"], ["Batch12"]],
+    "ComputerLab": [["Batch3"], ["Batch8"], ["Batch11"]],
+    "History": [["Batch5"], ["Batch7"], ["Batch9"], ["Batch12"]],
+    "Geography": [["Batch5"], ["Batch8"], ["Batch12"]]
+  }
+}
+
+# OUTPUT
+
+{
+  "status": "4",
+  "assignments": [
+    {
+      "batch": "Batch1",
+      "subject": "Math",
+      "timeslot": 19,
+      "room": "LH2",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "Math",
+      "timeslot": 23,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "Math",
+      "timeslot": 27,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "Math",
+      "timeslot": 28,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "Physics",
+      "timeslot": 12,
+      "room": "LH4",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "Physics",
+      "timeslot": 21,
+      "room": "LH2",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "Physics",
+      "timeslot": 34,
+      "room": "LH3",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "English",
+      "timeslot": 22,
+      "room": "LH1",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch1",
+      "subject": "English",
+      "timeslot": 31,
+      "room": "LH4",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Math",
+      "timeslot": 19,
+      "room": "LH2",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Math",
+      "timeslot": 23,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Math",
+      "timeslot": 27,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Math",
+      "timeslot": 28,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Chemistry",
+      "timeslot": 8,
+      "room": "LH2",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Chemistry",
+      "timeslot": 14,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Chemistry",
+      "timeslot": 29,
+      "room": "LH2",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Biology",
+      "timeslot": 3,
+      "room": "LH3",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch2",
+      "subject": "Biology",
+      "timeslot": 9,
+      "room": "LH4",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "Physics",
+      "timeslot": 2,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "Physics",
+      "timeslot": 4,
+      "room": "LH2",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "Physics",
+      "timeslot": 20,
+      "room": "LH2",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "Chemistry",
+      "timeslot": 11,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "Chemistry",
+      "timeslot": 17,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "Chemistry",
+      "timeslot": 25,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "ComputerLab",
+      "timeslot": 10,
+      "room": "Lab1",
+      "teacher": "Prof. Mehta"
+    },
+    {
+      "batch": "Batch3",
+      "subject": "ComputerLab",
+      "timeslot": 21,
+      "room": "Lab3",
+      "teacher": "Prof. Mehta"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "Math",
+      "timeslot": 10,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "Math",
+      "timeslot": 16,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "Math",
+      "timeslot": 18,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "Math",
+      "timeslot": 24,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "English",
+      "timeslot": 7,
+      "room": "LH4",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "English",
+      "timeslot": 11,
+      "room": "LH3",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "Biology",
+      "timeslot": 3,
+      "room": "LH3",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch4",
+      "subject": "Biology",
+      "timeslot": 9,
+      "room": "LH4",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch5",
+      "subject": "History",
+      "timeslot": 10,
+      "room": "LH4",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch5",
+      "subject": "History",
+      "timeslot": 14,
+      "room": "LH3",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch5",
+      "subject": "Geography",
+      "timeslot": 2,
+      "room": "LH4",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch5",
+      "subject": "Geography",
+      "timeslot": 3,
+      "room": "LH2",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Math",
+      "timeslot": 10,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Math",
+      "timeslot": 16,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Math",
+      "timeslot": 18,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Math",
+      "timeslot": 24,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Physics",
+      "timeslot": 3,
+      "room": "LH1",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Physics",
+      "timeslot": 5,
+      "room": "LH4",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Physics",
+      "timeslot": 29,
+      "room": "LH1",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Chemistry",
+      "timeslot": 1,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Chemistry",
+      "timeslot": 13,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch6",
+      "subject": "Chemistry",
+      "timeslot": 15,
+      "room": "LH2",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch7",
+      "subject": "English",
+      "timeslot": 16,
+      "room": "LH2",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch7",
+      "subject": "English",
+      "timeslot": 30,
+      "room": "LH4",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch7",
+      "subject": "Biology",
+      "timeslot": 3,
+      "room": "LH3",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch7",
+      "subject": "Biology",
+      "timeslot": 9,
+      "room": "LH4",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch7",
+      "subject": "History",
+      "timeslot": 27,
+      "room": "LH4",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch7",
+      "subject": "History",
+      "timeslot": 34,
+      "room": "LH1",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch8",
+      "subject": "ComputerLab",
+      "timeslot": 25,
+      "room": "Lab1",
+      "teacher": "Prof. Mehta"
+    },
+    {
+      "batch": "Batch8",
+      "subject": "ComputerLab",
+      "timeslot": 34,
+      "room": "Lab2",
+      "teacher": "Prof. Mehta"
+    },
+    {
+      "batch": "Batch8",
+      "subject": "Physics",
+      "timeslot": 11,
+      "room": "LH4",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch8",
+      "subject": "Physics",
+      "timeslot": 16,
+      "room": "LH4",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch8",
+      "subject": "Physics",
+      "timeslot": 31,
+      "room": "LH2",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch8",
+      "subject": "Geography",
+      "timeslot": 0,
+      "room": "LH4",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch8",
+      "subject": "Geography",
+      "timeslot": 17,
+      "room": "LH2",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "Math",
+      "timeslot": 5,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "Math",
+      "timeslot": 9,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "Math",
+      "timeslot": 12,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "Math",
+      "timeslot": 26,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "Chemistry",
+      "timeslot": 0,
+      "room": "LH1",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "Chemistry",
+      "timeslot": 6,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "Chemistry",
+      "timeslot": 21,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "History",
+      "timeslot": 20,
+      "room": "LH3",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch9",
+      "subject": "History",
+      "timeslot": 25,
+      "room": "LH4",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch10",
+      "subject": "Physics",
+      "timeslot": 6,
+      "room": "LH2",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch10",
+      "subject": "Physics",
+      "timeslot": 14,
+      "room": "LH4",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch10",
+      "subject": "Physics",
+      "timeslot": 26,
+      "room": "LH3",
+      "teacher": "Dr. Sharma"
+    },
+    {
+      "batch": "Batch10",
+      "subject": "Biology",
+      "timeslot": 3,
+      "room": "LH3",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch10",
+      "subject": "Biology",
+      "timeslot": 9,
+      "room": "LH4",
+      "teacher": "Dr. Iyer"
+    },
+    {
+      "batch": "Batch10",
+      "subject": "English",
+      "timeslot": 5,
+      "room": "LH2",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch10",
+      "subject": "English",
+      "timeslot": 34,
+      "room": "LH2",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "Math",
+      "timeslot": 5,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "Math",
+      "timeslot": 9,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "Math",
+      "timeslot": 12,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "Math",
+      "timeslot": 26,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "Chemistry",
+      "timeslot": 3,
+      "room": "LH4",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "Chemistry",
+      "timeslot": 7,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "Chemistry",
+      "timeslot": 22,
+      "room": "LH3",
+      "teacher": "Dr. Verma"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "ComputerLab",
+      "timeslot": 23,
+      "room": "Lab2",
+      "teacher": "Prof. Mehta"
+    },
+    {
+      "batch": "Batch11",
+      "subject": "ComputerLab",
+      "timeslot": 30,
+      "room": "Lab2",
+      "teacher": "Prof. Mehta"
+    },
+    {
+      "batch": "Batch12",
+      "subject": "History",
+      "timeslot": 7,
+      "room": "LH1",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch12",
+      "subject": "History",
+      "timeslot": 26,
+      "room": "LH1",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch12",
+      "subject": "English",
+      "timeslot": 28,
+      "room": "LH2",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch12",
+      "subject": "English",
+      "timeslot": 29,
+      "room": "LH4",
+      "teacher": "Dr. Gupta"
+    },
+    {
+      "batch": "Batch12",
+      "subject": "Geography",
+      "timeslot": 9,
+      "room": "LH2",
+      "teacher": "Dr. Kapoor"
+    },
+    {
+      "batch": "Batch12",
+      "subject": "Geography",
+      "timeslot": 33,
+      "room": "LH1",
+      "teacher": "Dr. Kapoor"
+    }
+  ],
+  "time_taken": 5.13,
+  "message": null
+}
