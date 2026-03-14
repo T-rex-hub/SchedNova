@@ -17,7 +17,7 @@ const debounce = (func, delay) => {
 // Data for dropdown options
 const roomTypes = ["Classroom", "Lab", "Seminar Hall", "Auditorium", "Library"];
 const classTypes = ["Lecture", "Lab", "Tutorial"];
-const allDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const allDays = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
 
 // Simulated data to mimic fetching from the backend
 const initialData = {
@@ -30,26 +30,7 @@ const initialData = {
     { from: "12:00", to: "13:00" },
     { from: "14:00", to: "15:00" },
   ],
-  // Corrected: Added sample departments to simulate fetched data
-  departments: [
-    {
-      id: 1,
-      name: "Computer Science",
-      subjects: [
-        { id: 101, code: "CS101", name: "Introduction to Programming" },
-        { id: 102, code: "CS201", name: "Data Structures and Algorithms" },
-        { id: 103, code: "CS301", name: "Operating Systems" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Electrical Engineering",
-      subjects: [
-        { id: 201, code: "EE101", name: "Basic Electrical Engineering" },
-        { id: 202, code: "EE201", name: "Power Systems" },
-      ],
-    },
-  ],
+  departments: [],
 };
 
 export default function Teachers() {
@@ -60,22 +41,38 @@ export default function Teachers() {
 
   // App-specific state
   const [teachers, setTeachers] = useState(initialData.teachers);
-  const [departments, setDepartments] = useState(initialData.departments);
+  const [departments, setDepartments] = useState([]);
   const [newTeacherName, setNewTeacherName] = useState("");
   const [periodsCount, setPeriodsCount] = useState(0);
   const [timeSlots, setTimeSlots] = useState([]);
   const [isContentVisible, setIsContentVisible] = useState(false);
 
-  // Simulated API call to fetch initial data on load
-  useEffect(() => {
-    setTimeout(() => {
-      setTeachers(initialData.teachers);
-      setPeriodsCount(initialData.periodsCount);
-      setTimeSlots(initialData.timeSlots);
-      setDepartments(initialData.departments);
-      setIsContentVisible(true);
-    }, 100);
-  }, []);
+ // Simulated API call to fetch initial data on load
+ useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch("http://127.0.0.1:8000/departments/with-subjects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const deptData = await res.json();
+
+        setTeachers([]);
+        setPeriodsCount(initialData.periodsCount);
+        setTimeSlots(initialData.timeSlots);
+        setDepartments(deptData);
+        setIsContentVisible(true);
+      } catch (err) {
+        console.error("Failed to fetch departments/subjects", err);
+      }
+    };
+
+    fetchData();
+ }, []);
 
   // Save data to backend with debounce
   const saveData = useCallback(
@@ -137,47 +134,59 @@ export default function Teachers() {
     );
   };
   
-  // Find a course name from the departments state
-  const getCourseName = (courseCode) => {
-    for (const dept of departments) {
-      for (const subj of dept.subjects) {
-        if (subj.code.toUpperCase() === courseCode.toUpperCase()) {
-          return subj.name;
-        }
-      }
-    }
-    return "Course Not Found";
-  };
+ // Find a course name from the departments state
+ const getCourseName = (courseCode) => {
+  if (!departments) return "Course Not Found";
+  for (const dept of departments) {
+     for (const subj of dept.subjects) {
+       if (subj.subject_code.toUpperCase() === courseCode.toUpperCase()) {
+         return subj.subject_name;
+       }
+     }
+   }
+   return "Course Not Found";
+ };
 
   // Memoize the list of all available courses to prevent re-calculation on every render
   const allCourses = useMemo(() => {
-    return departments.flatMap(dept => 
-      dept.subjects.map(subject => ({ code: subject.code, name: subject.name }))
-    );
-  }, [departments]);
+  if (!departments || departments.length === 0) return [];
 
+  return departments.flatMap(dept =>
+    (dept.subjects || []).map(subject => ({
+      id: subject.subject_id,
+      code: subject.subject_code,
+      name: subject.subject_name
+    }))
+  );
+}, [departments]);
   // --- End of Department/Subject Handling ---
 
-  // Teacher handling
-  const handleAddTeacher = () => {
-    if (newTeacherName.trim()) {
-      const initialAvailability = {};
-      // Pre-select all periods for each day
-      allDays.forEach(day => {
-        initialAvailability[day] = timeSlots.map(slot => `${slot.from}-${slot.to}`);
-      });
+// Teacher handling
+const handleAddTeacher = () => {
+  if (!newTeacherName.trim()) return;
 
-      const newTeacher = {
-        id: Date.now(),
-        name: newTeacherName.trim(),
-        availability: initialAvailability,
-        courses: [],
-        newCourseCode: "",
-      };
-      setTeachers([...teachers, newTeacher]);
-      setNewTeacherName("");
-    }
-  };
+  const initialAvailability = {};
+
+  // Pre‑select all periods so yellow dots appear
+  allDays.forEach(day => {
+    initialAvailability[day] = timeSlots.map(
+      slot => `${slot.from}-${slot.to}`
+    );
+  });
+
+  const newTeacher = {
+    id: Date.now(),
+    name: newTeacherName.trim(),
+    availability: initialAvailability,
+    courses: [],
+    newCourseCode: "",
+    saved: false
+  };
+
+  // Only update UI (do NOT save yet)
+  setTeachers(prev => [...prev, newTeacher]);
+  setNewTeacherName("");
+};
 
   const handleRemoveTeacher = (teacherId) => {
     setTeachers(teachers.filter((t) => t.id !== teacherId));
@@ -208,10 +217,11 @@ export default function Teachers() {
     setTeachers((prevTeachers) =>
       prevTeachers.map((teacher) => {
         if (teacher.id === teacherId) {
-          const courseCode = teacher.newCourseCode.trim().toUpperCase();
-          const courseName = getCourseName(courseCode);
-          if (courseCode && courseName !== "Course Not Found") {
-            const newCourse = { code: courseCode, name: courseName };
+          const courseId = teacher.newCourseCode;
+          const course = allCourses.find(c => String(c.id) === String(courseId));
+
+          if (course) {
+          const newCourse = { id: course.id, code: course.code, name: course.name };
             return {
               ...teacher,
               courses: [...teacher.courses, newCourse],
@@ -366,7 +376,7 @@ export default function Teachers() {
                       >
                           <option value="">Select a Course to Add</option>
                           {allCourses.map(course => (
-                            <option key={course.code} value={course.code}>
+                            <option key={course.id} value={course.id}>
                               {course.code} - {course.name}
                             </option>
                           ))}
@@ -427,15 +437,41 @@ export default function Teachers() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg> Previous
             </motion.a>
-            <motion.a 
-              href="/batch" 
+            <motion.button
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem("token");
+
+                  for (const teacher of teachers) {
+                    await fetch("http://127.0.0.1:8000/teachers/add", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        teacher_name: teacher.name,
+                        availability_time_slots: teacher.availability,
+                        subjects: teacher.courses.map(c => c.id)
+                      })
+                    });
+                  }
+
+                  window.location.href = "/batch";
+
+                } catch (err) {
+                  console.error("Failed to save teachers:", err);
+                }
+              }}
               whileHover={{ scale: 1.05, transition: { duration: 0.5 } }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]">
-              Next <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
+            >
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-            </motion.a>
+            </motion.button>
           </div>
   </AppLayout>
   );

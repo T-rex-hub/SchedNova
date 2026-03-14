@@ -13,16 +13,14 @@ def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(ge
     try:
         for dept in data["departments"]:
 
-            # create department
             new_dept = models.Department(
                 department_name=dept["department_name"],
                 user_id=user.user_id
             )
 
             db.add(new_dept)
-            db.flush()  # get department_id before commit
+            db.flush()
 
-            # add subjects for this department
             for subject in dept.get("subjects", []):
 
                 new_subject = models.Subject(
@@ -43,3 +41,37 @@ def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(ge
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ THIS MUST BE OUTSIDE THE FUNCTION
+@router.get("/with-subjects")
+def get_departments_with_subjects(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+
+    departments = db.query(models.Department).filter(
+        models.Department.user_id == user.user_id
+    ).all()
+
+    result = []
+
+    for dept in departments:
+        subjects = db.query(models.Subject).filter(
+            models.Subject.department_id == dept.department_id
+        ).all()
+
+        result.append({
+            "department_id": dept.department_id,
+            "department_name": dept.department_name,
+            "subjects": [
+                {
+                    "subject_id": s.subject_id,
+                    "subject_name": s.subject_name,
+                    "subject_code": s.course_code
+                }
+                for s in subjects
+            ]
+        })
+
+    return result

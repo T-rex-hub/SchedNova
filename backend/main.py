@@ -17,7 +17,7 @@ from backend.timetable_solver import solve_timetable
 from fastapi.middleware.cors import CORSMiddleware
 from backend.routers import departments
 from backend.routers import subjects
-
+from backend.routers import teacher
 app = FastAPI()
 
 
@@ -78,7 +78,7 @@ app.include_router(timetable_router)
 app.include_router(classrooms_router)
 app.include_router(departments.router)
 app.include_router(subjects.router)
-
+app.include_router(teacher.router)
 # ---------------- Fetch timetable data ----------------
 @app.get("/timetable-data")
 def get_timetable_data(
