@@ -32,3 +32,14 @@ def add_classrooms(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/")
+def get_classrooms(
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    rooms = db.query(Classroom).filter(Classroom.user_id == user.user_id).all()
+
+    # Return unique classroom types only
+    types = list({r.classroom_type for r in rooms})
+    return types

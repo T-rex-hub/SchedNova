@@ -1,114 +1,113 @@
-CREATE DATABASE IF NOT EXISTS mydatabase;
-USE mydatabase;
+-- PostgreSQL schema aligned with backend/models.py
+-- Create the database in Supabase separately; do not run CREATE DATABASE/USE here.
 
-/*
-DROP TABLE IF EXISTS fixed_group_batches;
-DROP TABLE IF EXISTS fixed_groups;
-DROP TABLE IF EXISTS batch_subjects;
-DROP TABLE IF EXISTS teacher_subjects;
-DROP TABLE IF EXISTS teachers;
-DROP TABLE IF EXISTS subjects;
-DROP TABLE IF EXISTS batches;
-DROP TABLE IF EXISTS classrooms;
-DROP TABLE IF EXISTS departments;
-DROP TABLE IF EXISTS users;
-*/
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'day_enum') THEN
+        CREATE TYPE day_enum AS ENUM ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
+    END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'classroom_type_enum') THEN
+        CREATE TYPE classroom_type_enum AS ENUM (
+            'lecture_hall',
+            'laboratory',
+            'seminar_room',
+            'auditorium'
+        );
+    END IF;
+END $$;
 
-CREATE TABLE users (
-    user_id VARCHAR(20) PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    pass_word VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    phone_number VARCHAR(20)
+CREATE TABLE IF NOT EXISTS users (
+    user_id VARCHAR(36) PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    pass_word VARCHAR(255) NOT NULL
 );
 
-
-CREATE TABLE departments (
-  department_id INT PK,
-  user_id VARCHAR(20) NULL,
-  department_name VARCHAR(255),
-  created_at TIMESTAMP,
-  UNIQUE (user_id, department_name)
+CREATE TABLE IF NOT EXISTS departments (
+    department_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE CASCADE,
+    department_name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
-CREATE TABLE classrooms (
-    classroom_code VARCHAR(20) PRIMARY KEY,
-    classroom_type ENUM('lecture_hall', 'laboratory', 'seminar_room', 'auditorium') DEFAULT 'lecture_hall'
+CREATE TABLE IF NOT EXISTS classrooms (
+    classroom_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE CASCADE,
+    room_code VARCHAR(20) NOT NULL,
+    classroom_type classroom_type_enum DEFAULT 'lecture_hall'
 );
 
-
-CREATE TABLE batches (
-    batch_id INT AUTO_INCREMENT PRIMARY KEY,
-    department_id INT NOT NULL,
-    batch_number VARCHAR(20) NOT NULL UNIQUE,
-    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS batches (
+    batch_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE CASCADE,
+    department_id INTEGER REFERENCES departments(department_id) ON DELETE CASCADE,
+    batch_name VARCHAR(50) NOT NULL
 );
 
-
-CREATE TABLE subjects (
-    subject_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(36),
-    department_id INT NOT NULL,
+CREATE TABLE IF NOT EXISTS subjects (
+    subject_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE SET NULL,
+    department_id INTEGER NOT NULL REFERENCES departments(department_id) ON DELETE CASCADE,
     subject_name VARCHAR(255) NOT NULL,
     course_code VARCHAR(20) NOT NULL,
     room_type VARCHAR(100),
-    classes_per_week INT NOT NULL,
-    duration INT DEFAULT 1,
-    max_lectures_per_day INT DEFAULT 2,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (department_id)
-        REFERENCES departments(department_id)
-        ON DELETE CASCADE,
-
-    FOREIGN KEY (user_id)
-        REFERENCES users(user_id)
-        ON DELETE SET NULL,
-
-    UNIQUE (department_id, subject_name)
+    classes_per_week INTEGER NOT NULL,
+    duration INTEGER DEFAULT 1,
+    max_lectures_per_day INTEGER DEFAULT 2,
+    credits INTEGER DEFAULT 3,
+    semester INTEGER,
+    is_elective BOOLEAN DEFAULT FALSE
 );
 
-CREATE TABLE teachers (
-    teacher_id INT AUTO_INCREMENT PRIMARY KEY,
-    department_id INT NOT NULL,
-    teacher_name VARCHAR(255) NOT NULL,
-    availability_time_slots JSON,
-    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS teachers (
+    teacher_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE CASCADE,
+    teacher_name VARCHAR(255),
+    availability_time_slots JSONB
 );
 
-
-CREATE TABLE teacher_subjects (
-    teacher_id INT NOT NULL,
-    subject_id INT NOT NULL,
-    PRIMARY KEY (teacher_id, subject_id),
-    FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE CASCADE,
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS teacher_subjects (
+    teacher_id INTEGER NOT NULL REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+    subject_id INTEGER NOT NULL REFERENCES subjects(subject_id) ON DELETE CASCADE,
+    PRIMARY KEY (teacher_id, subject_id)
 );
 
-
-CREATE TABLE batch_subjects (
-    batch_id INT NOT NULL,
-    subject_id INT NOT NULL,
-    classes_per_week INT NOT NULL,
-    PRIMARY KEY (batch_id, subject_id),
-    FOREIGN KEY (batch_id) REFERENCES batches(batch_id) ON DELETE CASCADE,
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS batch_subjects (
+    batch_id INTEGER NOT NULL REFERENCES batches(batch_id) ON DELETE CASCADE,
+    subject_id INTEGER NOT NULL REFERENCES subjects(subject_id) ON DELETE CASCADE,
+    classes_per_week INTEGER NOT NULL,
+    PRIMARY KEY (batch_id, subject_id)
 );
 
-
-CREATE TABLE fixed_groups (
-    group_id INT AUTO_INCREMENT PRIMARY KEY,
-    subject_id INT NOT NULL,
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS fixed_groups (
+    group_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE CASCADE,
+    group_name VARCHAR(100) NOT NULL,
+    group_size INTEGER NOT NULL
 );
 
-CREATE TABLE fixed_group_batches (
-    group_id INT NOT NULL,
-    batch_id INT NOT NULL,
-    PRIMARY KEY (group_id, batch_id),
-    FOREIGN KEY (group_id) REFERENCES fixed_groups(group_id) ON DELETE CASCADE,
-    FOREIGN KEY (batch_id) REFERENCES batches(batch_id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS fixed_group_batches (
+    group_id INTEGER NOT NULL REFERENCES fixed_groups(group_id) ON DELETE CASCADE,
+    batch_id INTEGER NOT NULL REFERENCES batches(batch_id) ON DELETE CASCADE,
+    PRIMARY KEY (group_id, batch_id)
+);
+
+CREATE TABLE IF NOT EXISTS timeslots (
+    timeslot_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE CASCADE,
+    day_of_week day_enum NOT NULL,
+    slot_number INTEGER NOT NULL,
+    start_time VARCHAR(10) NOT NULL,
+    end_time VARCHAR(10) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS timetables (
+    timetable_id SERIAL PRIMARY KEY,
+    user_id VARCHAR(36) REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP,
+    data JSONB NOT NULL
 );

@@ -31,9 +31,18 @@ class Timeslot(Base):
     timeslot_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(VARCHAR(36), ForeignKey("users.user_id", ondelete="CASCADE"))
     day_of_week = Column(
-        Enum("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", name="day_enum"),
-        nullable=False
-    )
+    Enum(
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+        name="day_enum"
+    ),
+    nullable=False
+)
     slot_number = Column(Integer, nullable=False)
     start_time = Column(String(10), nullable=False)  # e.g. "09:00"
     end_time = Column(String(10), nullable=False)    # e.g. "10:00"
@@ -52,6 +61,7 @@ class Department(Base):
     user = relationship("User", back_populates="departments")
     batches = relationship("Batch", back_populates="department", cascade="all, delete")
     subjects = relationship("Subject", back_populates="department", cascade="all, delete")
+    teachers = relationship("Teacher", back_populates="department", cascade="all, delete")
 
 class Classroom(Base):
     __tablename__ = "classrooms"
@@ -121,10 +131,12 @@ class Teacher(Base):
 
     teacher_id = Column(Integer, primary_key=True)
     user_id = Column(VARCHAR(36), ForeignKey("users.user_id", ondelete="CASCADE"))
+    department_id = Column(Integer, ForeignKey("departments.department_id", ondelete="CASCADE"))
     teacher_name = Column(String(255))
     availability_time_slots = Column(JSON)
 
     user = relationship("User", back_populates="teachers")
+    department = relationship("Department", back_populates="teachers")
     teacher_subjects = relationship("TeacherSubject", back_populates="teacher")
 
 

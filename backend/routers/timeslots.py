@@ -30,7 +30,7 @@ def add_timeslots(
 
     for slot in slots:
         ts = models.Timeslot(
-            user_id=user.user_id,              # ✅ FIXED
+            user_id=user.user_id,              
             day_of_week=slot["day_of_week"],
             slot_number=slot["slot_number"],
             start_time=slot["start_time"],

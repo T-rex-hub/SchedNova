@@ -8,35 +8,38 @@ router = APIRouter(prefix="/departments", tags=["Departments"])
 
 
 @router.post("/add")
-def add_departments(payload: dict, 
-                    db: Session = Depends(get_db),
-                    user=Depends(get_current_user)):
+def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(get_current_user)):
 
-    departments = payload.get("departments", [])
-    if not departments:
-        raise HTTPException(status_code=400, detail="No departments provided")
+    try:
+        for dept in data["departments"]:
 
-    created = []
-    for dept in departments:
-        name = dept.get("department_name")
-        if not name:
-            continue
+            # create department
+            new_dept = models.Department(
+                department_name=dept["department_name"],
+                user_id=user.user_id
+            )
 
-        # prevent duplicates per user
-        exists = db.query(models.Department).filter(
-            models.Department.user_id == user.user_id,
-            models.Department.department_name == name
-        ).first()
+            db.add(new_dept)
+            db.flush()  # get department_id before commit
 
-        if exists:
-            continue
+            # add subjects for this department
+            for subject in dept.get("subjects", []):
 
-        obj = models.Department(
-            user_id=user.user_id,
-            department_name=name
-        )
-        db.add(obj)
-        created.append(obj)
+                new_subject = models.Subject(
+                    subject_name=subject["subject_name"],
+                    course_code=subject["course_code"],
+                    classes_per_week=subject["classes_per_week"],
+                    room_type=subject["room_type"],
+                    department_id=new_dept.department_id,
+                    user_id=user.user_id
+                )
 
-    db.commit()
-    return {"message": "Departments added", "count": len(created)}
+                db.add(new_subject)
+
+        db.commit()
+
+        return {"message": "Departments and subjects added successfully"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
