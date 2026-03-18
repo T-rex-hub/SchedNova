@@ -33,17 +33,9 @@ const debounce = (func, delay) => {
 
 const colors = ["#FFD166", "#1D9AF0", "#FF6B6B", "#06D6A0", "#6A00F4", "#F79C66"];
 
-// Simulated initial data for batches.
-// In a real application, batches would be fetched from the backend.
+// Initial data (empty, will fetch from backend)
 const initialData = {
-  batches: [
-    { id: 1, name: "Batch 1" },
-    { id: 2, name: "Batch 2" },
-    { id: 3, name: "Batch 3" },
-    { id: 4, name: "Batch 4" },
-    { id: 5, name: "Batch A" },
-    { id: 6, name: "Batch B" },
-  ],
+  batches: [],
   groups: [],
 };
 
@@ -57,19 +49,77 @@ export default function Groups() {
 
   // App-specific state for groups and managing batch selections
   const [batches, setBatches] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [groups, setGroups] = useState(initialData.groups);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupBatchCount, setNewGroupBatchCount] = useState(""); // New state for number of batches
+  const [batchRows, setBatchRows] = useState([{ batch_id: "" }]);
+  const [roomRows, setRoomRows] = useState([{ roomType: "" }]);
   const [groupNameError, setGroupNameError] = useState("");
-  const [batchCountError, setBatchCountError] = useState(""); // New error state
 
-  // Simulated API call to fetch initial data on load
+  // Fetch batches and departments from backend on load
   useEffect(() => {
-    setTimeout(() => {
-      setBatches(initialData.batches);
-      setGroups(initialData.groups);
-      setIsContentVisible(true);
-    }, 100);
+    const fetchInitialData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch("http://127.0.0.1:8000/batches/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("BATCH API DATA:", data);
+
+        // Backend might return either an array or an object { batches: [...] }
+        if (Array.isArray(data)) {
+          setBatches(data);
+        } else if (Array.isArray(data.batches)) {
+          setBatches(data.batches);
+        } else {
+          setBatches([]);
+        }
+
+        // Fetch departments
+        const deptRes = await fetch("http://127.0.0.1:8000/departments/with-subjects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const deptData = await deptRes.json();
+        setDepartments(Array.isArray(deptData) ? deptData : []);
+
+        // Fetch available room types
+        const roomRes = await fetch("http://127.0.0.1:8000/classrooms/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const roomData = await roomRes.json();
+
+        console.log("ROOM TYPES:", roomData);
+        // Handle both array of strings and array of objects
+        if (Array.isArray(roomData)) {
+          setRoomTypes(roomData);
+        } else if (Array.isArray(roomData.classrooms)) {
+          setRoomTypes(roomData.classrooms);
+        } else {
+          setRoomTypes([]);
+        }
+
+        setGroups(initialData.groups);
+        setIsContentVisible(true);
+      } catch (err) {
+        console.error("Failed to fetch batches or departments:", err);
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
   // Save data to backend with debounce
@@ -89,43 +139,50 @@ export default function Groups() {
   // --- Group handling ---
   const handleAddGroup = () => {
     let hasError = false;
+
     if (!newGroupName.trim()) {
       setGroupNameError("Group name cannot be empty.");
       hasError = true;
     } else {
-        const isDuplicate = groups.some(group => group.name.trim().toLowerCase() === newGroupName.trim().toLowerCase());
-        if (isDuplicate) {
-          setGroupNameError("A group with this name already exists.");
-          hasError = true;
-        } else {
-            setGroupNameError("");
-        }
+      const isDuplicate = groups.some(
+        (group) =>
+          group.name.trim().toLowerCase() === newGroupName.trim().toLowerCase()
+      );
+      if (isDuplicate) {
+        setGroupNameError("A group with this name already exists.");
+        hasError = true;
+      } else {
+        setGroupNameError("");
+      }
     }
 
-    if (!newGroupBatchCount || newGroupBatchCount < 1) {
-        setBatchCountError("Number of batches must be at least 1.");
-        hasError = true;
-    } else {
-        setBatchCountError("");
-    }
+    const selectedBatchIds = batchRows
+      .map((row) => row.batch_id)
+      .filter(Boolean);
+
+    if (selectedBatchIds.length === 0) hasError = true;
+
+    const selectedRoomTypes = roomRows
+      .map((r) => r.roomType)
+      .filter(Boolean);
+    if (selectedRoomTypes.length === 0) hasError = true;
 
     if (hasError) return;
 
     const newGroup = {
       id: Date.now(),
       name: newGroupName.trim(),
-      color: colors[groups.length % colors.length],
-      isComplete: false,
-      numberOfBatches: parseInt(newGroupBatchCount, 10),
-      batchInputs: Array(parseInt(newGroupBatchCount, 10)).fill(""),
-      batchInputErrors: Array(parseInt(newGroupBatchCount, 10)).fill(""),
-      batches: [], // This will be populated on completion
+      department_id: selectedDepartment,
+      batch_ids: selectedBatchIds,
+      room_types: selectedRoomTypes,
+      isComplete: true,
     };
+
     setGroups([...groups, newGroup]);
     setNewGroupName("");
-    setNewGroupBatchCount(2); // Reset to default
+    setBatchRows([{ batch_id: "" }]);
+    setRoomRows([{ roomType: "" }]);
     setGroupNameError("");
-    setBatchCountError("");
   };
 
   const handleRemoveGroup = (groupId) => {
@@ -175,7 +232,7 @@ export default function Groups() {
 
             // Find the batch in the master list
             const batchExists = batches.find(
-                (b) => b.name.toLowerCase() === trimmedName.toLowerCase()
+                (b) => b.batch_name.toLowerCase() === trimmedName.toLowerCase()
             );
 
             if (!batchExists) {
@@ -235,134 +292,269 @@ export default function Groups() {
                   transition={{ duration: 0.5 }}
                   className="max-w-4xl mx-auto space-y-8 p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg"
                 >
-                  <h3 className="text-xl font-semibold mb-4 text-center">
-                    Group Management
-                  </h3>
-                  
-                  {/* Create Group Section */}
-                  <div className="space-y-2 bg-purple-900/70 p-4 rounded-lg">
-                     <h4 className="text-lg font-semibold text-center mb-4">Create New Group</h4>
-                    <div className="flex flex-col md:flex-row items-start gap-4">
-                      <div className="flex-1 w-full">
-                        <input
-                          type="text"
-                          value={newGroupName}
-                          onChange={(e) => setNewGroupName(e.target.value)}
-                          className="w-full px-4 py-2 rounded-md bg-purple-800/80 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                          placeholder="Enter group name..."
-                        />
-                        {groupNameError && <p className="text-red-300 text-xs mt-1">{groupNameError}</p>}
-                      </div>
-                      <div className="w-full md:w-auto">
-                        <input
-                           type="number"
-                           value={newGroupBatchCount}
-                           onChange={(e) => setNewGroupBatchCount(e.target.value)}
-                           min="1"
-                           className="w-full md:w-40 px-4 py-2 rounded-md bg-purple-800/80 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                           placeholder="No. of batches"
-                        />
-                        {batchCountError && <p className="text-red-300 text-xs mt-1">{batchCountError}</p>}
-                      </div>
-                      <motion.button
-                        onClick={handleAddGroup}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-3 self-center md:self-start rounded-lg bg-yellow-400 text-purple-900 font-bold transition-all hover:bg-yellow-500"
-                      >
-                        <Plus className="w-5 h-5" />
-                      </motion.button>
-                    </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold">Group Management</h3>
+                    <motion.button
+                      onClick={() => setShowCreateGroup(!showCreateGroup)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="p-2 rounded-full bg-yellow-400 text-purple-900"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </motion.button>
                   </div>
+                  
 
-                  {/* Created Groups List */}
-                  <div className="space-y-6">
-                    <h4 className="text-lg font-semibold">Created Groups</h4>
-                    {groups.length === 0 ? (
-                      <p className="text-center text-white/50">No groups have been created yet.</p>
-                    ) : (
-                      groups.map((group) => (
-                        <motion.div
-                          key={group.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.5, ease: "easeInOut" }}
+                  {/* Department Based Groups */}
+                  <div className="space-y-8">
+                    {departments.map((dept) => {
+                      /*
+                        Temporarily remove department filtering because backend
+                        field names may not match exactly. Always show batches
+                        fetched from the backend so the dropdown is never empty.
+                      */
+                      const batchList = Array.isArray(batches) ? batches : [];
+
+                      const deptGroups = groups.filter(
+                        (g) => g.department_id === dept.department_id
+                      );
+
+                      return (
+                        <div
+                          key={dept.department_id}
                           className="p-6 rounded-xl bg-purple-800/70 shadow-lg border border-purple-700"
-                          style={{ borderLeftColor: group.color, borderLeftWidth: "4px" }}
                         >
                           <div className="flex justify-between items-center mb-4">
-                            <div className="flex-1">
-                              <h4 className="text-xl font-bold">{group.name}</h4>
-                              <span className="text-sm text-white/70">{getGroupType(group.numberOfBatches)}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {group.isComplete ? (
-                                <span className="text-green-400 flex items-center gap-2">
-                                  <CheckCircle className="w-6 h-6" /> Completed
-                                </span>
-                              ) : (
+                            <h4 className="text-2xl font-bold">{dept.department_name}</h4>
+
+                            <motion.button
+                              onClick={() => {
+                                setSelectedDepartment(dept.department_id);
+                                setShowCreateGroup(true);
+                              }}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="p-3 rounded-full bg-yellow-400 text-purple-900"
+                            >
+                              <Plus className="w-5 h-5" />
+                            </motion.button>
+                          </div>
+
+                          {showCreateGroup && selectedDepartment === dept.department_id && (
+                            <div className="space-y-2 bg-purple-900/70 p-4 rounded-lg mb-4">
+                              <h4 className="text-lg font-semibold text-center mb-4">Create New Group</h4>
+
+                              <div className="flex flex-col md:flex-row items-start gap-4">
+                                <div className="w-full">
+                                  <input
+                                    type="text"
+                                    value={newGroupName}
+                                    onChange={(e) => setNewGroupName(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-md bg-purple-800/80 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                    placeholder="Enter group name..."
+                                  />
+                                  {groupNameError && <p className="text-red-300 text-xs mt-1">{groupNameError}</p>}
+                                </div>
+
+                                <div className="w-full space-y-2">
+                                  {batchRows.map((row, index) => (
+                                    <div key={index} className="flex gap-3 items-center">
+                                      <select
+                                        value={String(row.batch_id || "")}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setBatchRows(prev => {
+                                            const newRows = [...prev];
+                                            newRows[index] = {
+                                              ...newRows[index],
+                                              batch_id: value
+                                            };
+                                            return newRows;
+                                          });
+                                        }}
+                                        className="flex-1 px-4 py-2 rounded-md bg-purple-800/80 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                      >
+                                        <option value="">Select Batch</option>
+                                        {batchList
+                                          .filter(b =>
+                                            !batchRows.some((row, i) =>
+                                              i !== index &&
+                                              String(row.batch_id) === String(b.batch_id ?? b.id)
+                                            )
+                                          )
+                                          .map((b) => (
+                                            <option
+                                              key={b.batch_id ?? b.id}
+                                              value={String(b.batch_id ?? b.id)}
+                                            >
+                                              {b.batch_name ?? b.name}
+                                            </option>
+                                          ))}
+                                      </select>
+
+                                      <motion.button
+                                        onClick={() =>
+                                          setBatchRows([...batchRows, { batch_id: "" }])
+                                        }
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        className="p-2 rounded-lg bg-yellow-400 text-purple-900"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </motion.button>
+
+                                      {batchRows.length > 1 && (
+                                        <motion.button
+                                          onClick={() =>
+                                            setBatchRows(batchRows.filter((_, i) => i !== index))
+                                          }
+                                          whileHover={{ scale: 1.1 }}
+                                          whileTap={{ scale: 0.9 }}
+                                          className="p-2 rounded-lg bg-red-400 text-white"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </motion.button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+
                                 <motion.button
-                                  onClick={() => handleCompleteGroup(group.id)}
-                                  title={!isGroupReadyToComplete(group) ? "All batch names must be filled to complete." : "Click to validate and complete the group."}
-                                  disabled={!isGroupReadyToComplete(group)}
+                                  onClick={handleAddGroup}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className={`px-4 py-2 rounded-lg text-white font-bold transition-all ${
-                                    !isGroupReadyToComplete(group)
-                                      ? 'bg-gray-500 cursor-not-allowed'
-                                      : 'bg-green-500 hover:bg-green-600'
-                                  }`}
+                                  className="p-3 self-center md:self-start rounded-lg bg-yellow-400 text-purple-900 font-bold transition-all hover:bg-yellow-500"
                                 >
-                                  Complete
+                                  <Plus className="w-5 h-5" />
                                 </motion.button>
-                              )}
-                              <motion.button
-                                onClick={() => handleRemoveGroup(group.id)}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-1 rounded-full text-red-300 hover:text-red-500"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </motion.button>
-                            </div>
-                          </div>
-                          
-                          {/* Batch Inputs Section */}
-                          {!group.isComplete ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                {group.batchInputs.map((input, index) => (
-                                    <div key={index}>
-                                        <input
-                                            type="text"
-                                            value={input}
-                                            onChange={(e) => handleBatchInputChange(group.id, index, e.target.value)}
-                                            className="w-full px-4 py-2 rounded-md bg-purple-900/80 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                                            placeholder={`Enter Batch ${index + 1} name...`}
-                                        />
-                                        {group.batchInputErrors[index] && (
-                                            <p className="text-red-300 text-xs mt-1">{group.batchInputErrors[index]}</p>
+                              </div>
+
+                              {/* Room type selection for the group (not per batch) */}
+                              <div className="flex flex-col gap-2 mt-4">
+                                <span className="text-xs text-white/60">Select rooms type for grouping</span>
+                                <div className="flex flex-col gap-2">
+                                  {(() => {
+                                    // get unique room types from backend
+                                    const uniqueRoomTypes = [
+                                      ...new Set(
+                                        roomTypes.map((r) => {
+                                          // 🔥 FIX: handle string response from backend
+                                          if (typeof r === "string") return r;
+                                          return (
+                                            r.classroom_type ||
+                                            r.room_type ||
+                                            r.type ||
+                                            r.classroom_type_enum
+                                          );
+                                        }).filter(Boolean)
+                                      ),
+                                    ];
+
+                                    return roomRows.map((row, index) => (
+                                      <div key={index} className="flex gap-2 items-center">
+                                        <select
+                                          value={row.roomType || ""}
+                                          onChange={(e) => {
+                                            const newRows = [...roomRows];
+                                            newRows[index].roomType = e.target.value;
+                                            setRoomRows(newRows);
+                                          }}
+                                          className="flex-1 px-4 py-2 rounded-md bg-purple-800/80 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                        >
+                                          <option value="">Select Room Type</option>
+                                          {uniqueRoomTypes.map((type, i) => {
+                                            const displayName = type
+                                              .replaceAll("_", " ")
+                                              .replace(/\b\w/g, (c) => c.toUpperCase());
+                                            return (
+                                              <option key={i} value={type}>
+                                                {displayName}
+                                              </option>
+                                            );
+                                          })}
+                                        </select>
+                                        {/* ADD BUTTON */}
+                                        <button
+                                          onClick={() =>
+                                            setRoomRows([
+                                              ...roomRows,
+                                              { roomType: "" },
+                                            ])
+                                          }
+                                          className="p-2 rounded bg-yellow-400 text-purple-900"
+                                        >
+                                          <Plus size={16} />
+                                        </button>
+                                        {/* REMOVE BUTTON */}
+                                        {roomRows.length > 1 && (
+                                          <button
+                                            onClick={() =>
+                                              setRoomRows(
+                                                roomRows.filter((_, i) => i !== index)
+                                              )
+                                            }
+                                            className="p-2 rounded bg-red-400 text-white"
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
                                         )}
-                                    </div>
-                                ))}
-                            </div>
-                          ) : (
-                             <div className="flex flex-wrap gap-2 mt-2">
-                                {group.batches.map((batch) => (
-                                  <motion.div
-                                    key={batch.id}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-purple-700/60 border border-purple-600"
-                                  >
-                                    <span className="text-white">{batch.name}</span>
-                                  </motion.div>
-                                ))}
+                                      </div>
+                                    ));
+                                  })()}
+                                </div>
+                              </div>
                             </div>
                           )}
-                        </motion.div>
-                      ))
-                    )}
+
+                          {deptGroups.length === 0 ? (
+                            <p className="text-white/50">No groups created for this department.</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {deptGroups.map((group) => (
+                                <div
+                                  key={group.id}
+                                  className="p-4 rounded-lg bg-purple-900/60 border border-purple-700"
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <p className="font-semibold">{group.name}</p>
+                                      <p className="text-sm text-white/60">
+                                        {group.room_types?.map(rt =>
+                                          rt.replaceAll("_", " ").toUpperCase()
+                                        ).join(", ")}
+                                      </p>
+                                    </div>
+
+                                    <motion.button
+                                      onClick={() => handleRemoveGroup(group.id)}
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      className="text-red-400"
+                                    >
+                                      <Trash2 className="w-5 h-5" />
+                                    </motion.button>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {group.batch_ids?.map((id) => {
+                                      const batch = batches.find((b) => (b.batch_id ?? b.id) == id);
+                                      return (
+                                        <span
+                                          key={id}
+                                          className="px-3 py-1 text-sm rounded-full bg-purple-700/60 border border-purple-600"
+                                        >
+                                          {batch?.batch_name ?? batch?.name ?? "Batch"}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}
@@ -382,16 +574,43 @@ export default function Groups() {
               Previous
             </motion.a>
 
-            <motion.a
-              href="/generate-final-timetable"
+            <motion.button
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem("token");
+
+                  const payload = {
+                    groups: groups.map((g) => ({
+                      group_name: g.name,
+                      department_id: g.department_id,
+                      room_types: g.room_types,
+                      batch_ids: g.batch_ids,
+                    })),
+                  };
+
+                  await fetch("http://127.0.0.1:8000/groups/add", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payload),
+                  });
+
+                  window.location.href = "/generate-final-timetable";
+                } catch (err) {
+                  console.error("Failed saving groups", err);
+                }
+              }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]">
+              className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
+            >
               Next
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-            </motion.a>
+            </motion.button>
           </div>
   </AppLayout>
 );

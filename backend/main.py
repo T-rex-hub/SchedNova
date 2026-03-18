@@ -18,6 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.routers import departments
 from backend.routers import subjects
 from backend.routers import teacher
+from backend.routers import batch
+from backend.routers import groups
 app = FastAPI()
 
 
@@ -79,6 +81,8 @@ app.include_router(classrooms_router)
 app.include_router(departments.router)
 app.include_router(subjects.router)
 app.include_router(teacher.router)
+app.include_router(batch.router)
+app.include_router(groups.router)
 # ---------------- Fetch timetable data ----------------
 @app.get("/timetable-data")
 def get_timetable_data(

@@ -1,3 +1,4 @@
+import traceback
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
@@ -23,16 +24,37 @@ def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(ge
 
             for subject in dept.get("subjects", []):
 
+                subject_name = subject.get("subject_name")
+                course_code = subject.get("course_code")
+
+                if not subject_name or not course_code:
+                    continue
+
                 new_subject = models.Subject(
-                    subject_name=subject["subject_name"],
-                    course_code=subject["course_code"],
-                    classes_per_week=subject["classes_per_week"],
-                    room_type=subject["room_type"],
+                    subject_name=subject_name,
+                    course_code=course_code,
                     department_id=new_dept.department_id,
                     user_id=user.user_id
                 )
 
                 db.add(new_subject)
+                db.flush()
+
+                # Insert room types if provided
+                for room in subject.get("rooms", []):
+                    room_type = room.get("room_type")
+                    classes_per_week = room.get("classes_per_week", 0)
+
+                    if not room_type:
+                        continue
+
+                    room_entry = models.SubjectRoomType(
+                        subject_id=new_subject.subject_id,
+                        room_type=room_type,
+                        classes_per_week=classes_per_week
+                    )
+
+                    db.add(room_entry)
 
         db.commit()
 
@@ -40,6 +62,8 @@ def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(ge
 
     except Exception as e:
         db.rollback()
+        print("ERROR WHILE SAVING DEPARTMENT:")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

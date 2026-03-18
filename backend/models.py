@@ -5,6 +5,7 @@ from sqlalchemy import (
     VARCHAR, Column, DateTime, Integer, String,
     ForeignKey, Enum, JSON, Boolean, func
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class User(Base):
@@ -69,11 +70,7 @@ class Classroom(Base):
     classroom_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(VARCHAR(36), ForeignKey("users.user_id", ondelete="CASCADE"))
     room_code = Column(String(20), nullable=False)
-    classroom_type = Column(
-        Enum("lecture_hall", "laboratory", "seminar_room", "auditorium",
-             name="classroom_type_enum"),
-        default="lecture_hall"
-    )
+    classroom_type = Column(String(100), nullable=False)
     
 
     user = relationship("User", back_populates="classrooms")
@@ -89,6 +86,11 @@ class Batch(Base):
 
     user = relationship("User", back_populates="batches")
     department = relationship("Department", back_populates="batches")
+    batch_subjects = relationship(
+        "BatchSubject",
+        back_populates="batch",
+        cascade="all, delete"
+    )
 
 
 class Subject(Base):
@@ -104,8 +106,7 @@ class Subject(Base):
 
     subject_name = Column(String(255), nullable=False)
     course_code = Column(String(20), nullable=False)
-    room_type = Column(String(100))
-    classes_per_week = Column(Integer, nullable=False)
+    
     duration = Column(Integer, default=1)
     max_lectures_per_day = Column(Integer, default=2)
     credits = Column(Integer, default=3)
@@ -124,7 +125,27 @@ class Subject(Base):
         back_populates="subject",
         cascade="all, delete"
     )
+    room_types = relationship(
+    "SubjectRoomType",
+    back_populates="subject",
+    cascade="all, delete"
+    )   
+class SubjectRoomType(Base):
+    __tablename__ = "subject_room_types"
 
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    subject_id = Column(
+        Integer,
+        ForeignKey("subjects.subject_id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    room_type = Column(String(100), nullable=False)
+
+    classes_per_week = Column(Integer, nullable=False)
+
+    subject = relationship("Subject", back_populates="room_types")
 
 class Teacher(Base):
     __tablename__ = "teachers"
@@ -156,9 +177,10 @@ class BatchSubject(Base):
 
     batch_id = Column(Integer, ForeignKey("batches.batch_id", ondelete="CASCADE"), primary_key=True)
     subject_id = Column(Integer, ForeignKey("subjects.subject_id", ondelete="CASCADE"), primary_key=True)
-    classes_per_week = Column(Integer, nullable=False)
+    classes_per_week = Column(Integer, nullable=True, default=0)
 
     subject = relationship("Subject", back_populates="batch_subjects")
+    batch = relationship("Batch", back_populates="batch_subjects")
 
 
 class FixedGroup(Base):
@@ -166,11 +188,14 @@ class FixedGroup(Base):
 
     group_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(VARCHAR(36), ForeignKey("users.user_id", ondelete="CASCADE"))
+
+    department_id = Column(Integer, ForeignKey("departments.department_id", ondelete="CASCADE"))
+
     group_name = Column(String(100), nullable=False)
-    group_size = Column(Integer, nullable=False)
 
-    batches = relationship("FixedGroupBatch", back_populates="group")
+    room_types = Column(ARRAY(String), nullable=False)   # 🔥 IMPORTANT
 
+    batches = relationship("FixedGroupBatch", back_populates="group", cascade="all, delete")
 
 class FixedGroupBatch(Base):
     __tablename__ = "fixed_group_batches"

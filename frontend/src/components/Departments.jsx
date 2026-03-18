@@ -77,7 +77,7 @@ if (Array.isArray(data)) {
       ...prev,
       [deptName]: [
         ...(prev[deptName] || []),
-        { subject_name: "", course_code: "", classes_per_week: "", room_type:"" }
+        { subject_name: "", course_code: "", rooms: [{ room_type: "", classes_per_week: "" }] }
       ]
     }));
   };
@@ -106,7 +106,7 @@ if (Array.isArray(data)) {
         // Initialize with one empty subject field when selected
         setDeptSubjects(s => ({
           ...s,
-          [name]: [{ subject_name: "", course_code: "", classes_per_week: "", room_type: "" }]
+          [name]: [{ subject_name: "", course_code: "", rooms: [{ room_type: "", classes_per_week: "" }] }]
         }));
         return [...prev, name];
       }
@@ -131,8 +131,10 @@ if (Array.isArray(data)) {
           .map(s => ({
             subject_name: s.subject_name,
             course_code: s.course_code,
-            classes_per_week: parseInt(s.classes_per_week) || 0,
-            room_type: s.room_type
+            rooms: (s.rooms || []).map(r => ({
+              room_type: r.room_type,
+              classes_per_week: parseInt(r.classes_per_week) || 0
+            }))
           }))
       }))
     };
@@ -318,31 +320,65 @@ if (Array.isArray(data)) {
                                         </button>
                                       </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <input
-                                        type="number"
-                                        min="1"
-                                        placeholder="Classes/Week"
-                                       value={subj.classes_per_week}
-                                       onChange={(e) => updateSubjectField(deptName, sIdx, "classes_per_week", e.target.value)}
-                                       className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white placeholder-purple-500 focus:outline-none focus:ring-1 ring-yellow-400/50"
-                                      />
-                                      <select
-                                        value={subj.room_type}
-                                        onChange={(e) => updateSubjectField(deptName, sIdx, "room_type", e.target.value)}
-                                        className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white focus:outline-none focus:ring-1 ring-yellow-400/50"
+                                    {/* Room/Class Section */}
+                                    <div className="space-y-2">
+                                      {(subj.rooms || []).map((r, rIdx) => (
+                                        <div key={rIdx} className="grid grid-cols-12 gap-2">
+                                          <div className="col-span-7">
+                                            <select
+                                              value={r.room_type}
+                                              onChange={(e) => {
+                                                const updated = [...(subj.rooms || [])];
+                                                updated[rIdx].room_type = e.target.value;
+                                                updateSubjectField(deptName, sIdx, "rooms", updated);
+                                              }}
+                                              className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white"
+                                            >
+                                              <option value="" className="bg-purple-950">Select Room</option>
+                                              {Array.isArray(rooms) && rooms.map(room => (
+                                                <option key={room.classroom_id || room} value={room.classroom_type || room} className="bg-purple-950">
+                                                  {room.classroom_type || room}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                          <div className="col-span-4">
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              placeholder="/week"
+                                              value={r.classes_per_week}
+                                              onChange={(e) => {
+                                                const updated = [...(subj.rooms || [])];
+                                                updated[rIdx].classes_per_week = e.target.value;
+                                                updateSubjectField(deptName, sIdx, "rooms", updated);
+                                              }}
+                                              className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white"
+                                            />
+                                          </div>
+                                          <div className="col-span-1 flex items-center">
+                                            <button
+                                              onClick={() => {
+                                                const updated = (subj.rooms || []).filter((_, i) => i !== rIdx);
+                                                updateSubjectField(deptName, sIdx, "rooms", updated);
+                                              }}
+                                              className="text-red-400"
+                                            >
+                                              <Minus size={12} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+
+                                      <button
+                                        onClick={() => {
+                                          const updated = [...(subj.rooms || []), { room_type: "", classes_per_week: "" }];
+                                          updateSubjectField(deptName, sIdx, "rooms", updated);
+                                        }}
+                                        className="text-[10px] text-yellow-400 flex items-center gap-1"
                                       >
-                                        <option value="" className="bg-purple-950">Select Room Type</option>
-                                        {Array.isArray(rooms) && rooms.map(type => (
-                                          <option
-                                            key={type}
-                                            value={type}
-                                            className="bg-purple-950"
-                                          >
-                                            {type}
-                                          </option>
-                                        ))}
-                                      </select>
+                                        <Plus size={12}/> Add Room
+                                      </button>
                                     </div>
                                   </div>
                                 ))}

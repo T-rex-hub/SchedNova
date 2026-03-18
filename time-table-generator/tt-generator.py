@@ -1,75 +1,89 @@
 from ortools.sat.python import cp_model
 import time
 
+from backend.database import SessionLocal
+from backend import models
+
 t_start_time = time.time()
 
 model = cp_model.CpModel()
 
-# Problem dimensions
-batches = [f"Batch{i}" for i in range(1, 13)]
+# --- LOAD DATA FROM DATABASE ---
+db = SessionLocal()
+
+# Batches
+db_batches = db.query(models.Batch).all()
+batches = [b.batch_name for b in db_batches]
+
+# Rooms
+rooms = {}
+db_rooms = db.query(models.Classroom).all()
+for r in db_rooms:
+    rooms[r.room_code] = r.classroom_type
+
+# Subjects
+subjects = {}
+db_subjects = db.query(models.Subject).all()
+for s in db_subjects:
+    subjects[s.subject_name] = {
+        "teachers": [],  # fill later
+        "room_type": None,  # from subject_room_types
+        "per_week": None,
+        "duration": s.duration
+    }
+
+# Subject Room Types (for room_type + classes_per_week)
+db_room_types = db.query(models.SubjectRoomType).all()
+for rt in db_room_types:
+    subject = db.query(models.Subject).filter(models.Subject.subject_id == rt.subject_id).first()
+    if subject:
+        subjects[subject.subject_name]["room_type"] = rt.room_type
+        subjects[subject.subject_name]["per_week"] = rt.classes_per_week
+
+# Teachers + mapping
+teachers = {}
+db_teachers = db.query(models.Teacher).all()
+for t in db_teachers:
+    teachers[t.teacher_name] = {
+        "subjects": [],
+        "available_shifts": list(range(35))  # TODO: replace with real availability
+    }
+
+# Teacher-Subject mapping
+db_teacher_subjects = db.query(models.TeacherSubject).all()
+for ts in db_teacher_subjects:
+    teacher = db.query(models.Teacher).filter(models.Teacher.teacher_id == ts.teacher_id).first()
+    subject = db.query(models.Subject).filter(models.Subject.subject_id == ts.subject_id).first()
+    if teacher and subject:
+        teachers[teacher.teacher_name]["subjects"].append(subject.subject_name)
+        subjects[subject.subject_name]["teachers"].append(teacher.teacher_name)
+
+# Batch Subjects
+batch_subjects = {}
+db_batch_subjects = db.query(models.BatchSubject).all()
+for bs in db_batch_subjects:
+    batch = db.query(models.Batch).filter(models.Batch.batch_id == bs.batch_id).first()
+    subject = db.query(models.Subject).filter(models.Subject.subject_id == bs.subject_id).first()
+    if batch and subject:
+        batch_subjects.setdefault(batch.batch_name, []).append(subject.subject_name)
+
+# Fixed Groups
+fixed_groups = {}
+db_groups = db.query(models.FixedGroup).all()
+for g in db_groups:
+    group_batches = db.query(models.FixedGroupBatch).filter(models.FixedGroupBatch.group_id == g.group_id).all()
+    batch_names = []
+    for gb in group_batches:
+        batch = db.query(models.Batch).filter(models.Batch.batch_id == gb.batch_id).first()
+        if batch:
+            batch_names.append(batch.batch_name)
+
+    for subject_name in subjects:
+        fixed_groups.setdefault(subject_name, []).append(tuple(batch_names))
+
 slots_per_day = 7
 days = 5
 timeslots = list(range(days * slots_per_day))  # 5 days * 7 slots/day
-
-rooms = {
-    "LH1": "Lecture",
-    "LH2": "Lecture",
-    "LH3": "Lecture",
-    "LH4": "Lecture",
-    "Lab1": "Lab",
-    "Lab2": "Lab",
-    "Lab3": "Lab"
-}
-
-# Teachers
-teachers = {
-    "Dr. Sharma": {"subjects": ["Math", "Physics"], "available_shifts": list(range(35))},
-    "Prof. Singh": {"subjects": ["Chemistry", "Biology"], "available_shifts": list(range(0, 35, 2))},
-    "Dr. Gupta": {"subjects": ["ComputerLab", "English"], "available_shifts": list(range(5, 35))},
-    "Dr. Verma": {"subjects": ["Math", "Physics", "Chemistry", "English"], "available_shifts": list(range(0, 30))},
-    "Dr. Kapoor": {"subjects": ["History", "Geography"], "available_shifts": list(range(0, 35))},
-    "Prof. Mehta": {"subjects": ["ComputerLab", "Physics"], "available_shifts": list(range(10, 35, 2))},
-    "Dr. Iyer": {"subjects": ["English", "Biology"], "available_shifts": list(range(0, 20))}
-}
-
-# Subjects
-subjects = {
-    "Math": {"teachers": ["Dr. Sharma", "Dr. Verma"], "room_type": "Lecture", "per_week": 4, "duration": 1},
-    "Physics": {"teachers": ["Dr. Sharma", "Dr. Verma", "Prof. Mehta"], "room_type": "Lecture", "per_week": 3, "duration": 1},
-    "Chemistry": {"teachers": ["Prof. Singh", "Dr. Verma"], "room_type": "Lecture", "per_week": 3, "duration": 1},
-    "ComputerLab": {"teachers": ["Dr. Gupta", "Prof. Mehta"], "room_type": "Lab", "per_week": 2, "duration": 2},
-    "English": {"teachers": ["Dr. Verma", "Dr. Gupta", "Dr. Iyer"], "room_type": "Lecture", "per_week": 2, "duration": 1},
-    "Biology": {"teachers": ["Prof. Singh", "Dr. Iyer"], "room_type": "Lecture", "per_week": 2, "duration": 1},
-    "History": {"teachers": ["Dr. Kapoor"], "room_type": "Lecture", "per_week": 2, "duration": 1},
-    "Geography": {"teachers": ["Dr. Kapoor"], "room_type": "Lecture", "per_week": 2, "duration": 1}
-}
-
-batch_subjects = {
-    "Batch1": ["Math", "Physics", "English"],
-    "Batch2": ["Math", "Chemistry", "Biology"],
-    "Batch3": ["Physics", "Chemistry", "ComputerLab"],
-    "Batch4": ["Math", "English", "Biology"],
-    "Batch5": ["History", "Geography"],
-    "Batch6": ["Math", "Physics", "Chemistry"],
-    "Batch7": ["English", "Biology", "History"],
-    "Batch8": ["ComputerLab", "Physics", "Geography"],
-    "Batch9": ["Math", "Chemistry", "History"],
-    "Batch10": ["Physics", "Biology", "English"],
-    "Batch11": ["Math", "Chemistry", "ComputerLab"],
-    "Batch12": ["History", "English", "Geography"]
-}
-
-fixed_groups = {
-    "Math": [("Batch1", "Batch2"), ("Batch4", "Batch6"), ("Batch9", "Batch11")],
-    "Biology": [("Batch2", "Batch4", "Batch7", "Batch10")],
-    # Add singleton groups for normally batch-wise subjects
-    "Physics": [("Batch1",), ("Batch3",), ("Batch6",), ("Batch8",), ("Batch10",)],
-    "Chemistry": [("Batch2",), ("Batch3",), ("Batch6",), ("Batch9",), ("Batch11",)],
-    "English": [("Batch1",), ("Batch4",), ("Batch7",), ("Batch10",), ("Batch12",)],
-    "ComputerLab": [("Batch3",), ("Batch8",), ("Batch11",)],
-    "History": [("Batch5",), ("Batch7",), ("Batch9",), ("Batch12",)],
-    "Geography": [("Batch5",), ("Batch8",), ("Batch12",)]
-}
 
 # Variables
 # Occupancy variables at each timeslot (as in the original model), at the group level.

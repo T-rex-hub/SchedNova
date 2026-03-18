@@ -12,32 +12,50 @@ const debounce = (func, delay) => {
   };
 };
 
-// Initial data
-const initialData = {
-  departments: [
-    {
-      id: 1,
-      name: "Computer Science & Engineering",
-      batches: [
-        { id: 101, name: "CSE Batch 2022-26" },
-        { id: 102, name: "CSE Batch 2023-27" },
-      ],
-      newBatchName: "",
-      showBatchInput: false,
-    },
-  ],
-};
-
 export default function BatchAdd() {
 
   const [departments, setDepartments] = useState([]);
   const [isContentVisible, setIsContentVisible] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => {
-      setDepartments(initialData.departments);
-      setIsContentVisible(true);
-    }, 100);
+    const fetchDepartments = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch("http://127.0.0.1:8000/departments/with-subjects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("Departments API response:", data);
+
+        const formatted = data.map((dept) => ({
+          id: dept.department_id,
+          name: dept.department_name,
+          subjects:
+            Array.isArray(dept.subjects)
+              ? dept.subjects
+              : Array.isArray(dept.subject_list)
+              ? dept.subject_list
+              : Array.isArray(dept.subject)
+              ? dept.subject
+              : [],
+          selectedSubjects: [],
+          batches: [],
+          newBatchName: "",
+          showBatchInput: false,
+        }));
+
+        setDepartments(formatted);
+        setIsContentVisible(true);
+      } catch (err) {
+        console.error("Failed to load departments", err);
+      }
+    };
+
+    fetchDepartments();
   }, []);
 
   const saveData = useCallback(
@@ -53,22 +71,29 @@ export default function BatchAdd() {
     }
   }, [departments, saveData, isContentVisible]);
 
-  // Add batch
+  // Add batch (supports comma separated batch names)
   const handleAddBatch = (deptId) => {
     setDepartments(
-      departments.map((dept) =>
-        dept.id === deptId && dept.newBatchName.trim()
-          ? {
-              ...dept,
-              batches: [
-                ...dept.batches,
-                { id: Date.now(), name: dept.newBatchName },
-              ],
-              newBatchName: "",
-              showBatchInput: false,
-            }
-          : dept
-      )
+      departments.map((dept) => {
+        if (dept.id !== deptId || !dept.newBatchName.trim()) return dept;
+
+        const batchNames = dept.newBatchName
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name.length > 0);
+
+        const newBatches = batchNames.map((name) => ({
+          id: Date.now() + Math.random(),
+          name: name,
+        }));
+
+        return {
+          ...dept,
+          batches: [...dept.batches, ...newBatches],
+          newBatchName: "",
+          showBatchInput: false,
+        };
+      })
     );
   };
 
@@ -84,6 +109,54 @@ export default function BatchAdd() {
           : dept
       )
     );
+  };
+
+  // Assign selected subjects to all batches in department
+  const assignSubjectsToBatches = (deptId) => {
+    setDepartments(
+      departments.map((dept) => {
+        if (dept.id !== deptId) return dept;
+
+        const updatedBatches = dept.batches.map((batch) => ({
+          ...batch,
+          subjects: dept.selectedSubjects,
+        }));
+
+        return {
+          ...dept,
+          batches: updatedBatches,
+        };
+      })
+    );
+  };
+
+  const handleNext = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const payload = {
+        batches: departments.flatMap((dept) =>
+          dept.batches.map((batch) => ({
+            batch_name: batch.name,
+            department_id: dept.id,
+            subjects: batch.subjects || []
+          }))
+        ),
+      };
+
+      await fetch("http://127.0.0.1:8000/batches/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      window.location.href = "/group";
+    } catch (err) {
+      console.error("Failed to save batches", err);
+    }
   };
 
   return (
@@ -122,6 +195,37 @@ export default function BatchAdd() {
               </motion.button>
             </div>
 
+            {/* Subject selector for all batches */}
+            <div className="flex gap-3 mb-4">
+              <select
+                className="flex-1 px-3 py-2 rounded bg-purple-900 text-white"
+                value={dept.selectedSubjects[0] || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+
+                  setDepartments(
+                    departments.map((d) =>
+                      d.id === dept.id ? { ...d, selectedSubjects: [value] } : d
+                    )
+                  );
+                }}
+              >
+                <option value="">Select Subject</option>
+                {(dept.subjects || []).map((subj) => (
+                  <option key={subj.subject_id} value={subj.subject_id}>
+                    {subj.subject_code} - {subj.subject_name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => assignSubjectsToBatches(dept.id)}
+                className="bg-yellow-400 px-4 rounded text-black"
+              >
+                Assign to All Batches
+              </button>
+            </div>
+
             {/* Add Batch Input */}
             <AnimatePresence>
               {dept.showBatchInput && (
@@ -141,7 +245,7 @@ export default function BatchAdd() {
                         )
                       )
                     }
-                    placeholder="Batch name"
+                    placeholder="Batch name (comma separated e.g. CSE-A, CSE-B, CSE-C)"
                     className="flex-1 px-4 py-2 rounded bg-purple-900 text-white"
                   />
 
@@ -162,7 +266,19 @@ export default function BatchAdd() {
                   key={batch.id}
                   className="flex justify-between items-center p-3 rounded bg-purple-700/60"
                 >
-                  <span>{batch.name}</span>
+                  <div>
+                    <div>{batch.name}</div>
+                    {batch.subjects && batch.subjects.length > 0 && (
+                      <div className="text-xs text-gray-300">
+                        Subjects: {batch.subjects
+                          .map((id) => {
+                            const subj = dept.subjects.find((s) => String(s.subject_id) === String(id));
+                            return subj ? subj.subject_code : id;
+                          })
+                          .join(", ")}
+                      </div>
+                    )}
+                  </div>
 
                   <button
                     onClick={() =>
@@ -188,12 +304,14 @@ export default function BatchAdd() {
           ← Previous
         </a>
 
-        <a
-          href="/group"
+        <motion.button
+          onClick={handleNext}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#4A0D8D] text-white font-bold hover:bg-[#6A00F4] transition-all"
         >
           Next →
-        </a>
+        </motion.button>
       </div>
 
     </AppLayout>
