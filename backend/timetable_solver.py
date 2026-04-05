@@ -18,17 +18,44 @@ def solve_timetable(request_data):
     model = cp_model.CpModel()
     start_time = time.time()
 
-    # Extract from request
-    batches = request_data.batches
-    timeslots = request_data.timeslots
-    rooms = request_data.rooms
-    teachers = request_data.teachers
-    subjects = request_data.subjects
-    batch_subjects = request_data.batch_subjects
-    fixed_groups = request_data.fixed_groups
+    # CP-SAT code expects plain dicts (subscriptable), not Pydantic models
+    if hasattr(request_data, "model_dump"):
+        rd = request_data.model_dump()
+        batches = rd["batches"]
+        timeslots = rd["timeslots"]
+        rooms = rd["rooms"]
+        teachers = {int(k): v for k, v in rd["teachers"].items()}
+        subjects = {int(k): v for k, v in rd["subjects"].items()}
+        batch_subjects = {
+            int(bid): {int(sid): n for sid, n in sm.items()}
+            for bid, sm in rd["batch_subjects"].items()
+        }
+        fixed_groups = {int(k): v for k, v in rd["fixed_groups"].items()}
+        slots_per_day = max(1, int(rd["slots_per_day"]))
+    else:
+        batches = request_data.batches
+        timeslots = request_data.timeslots
+        rooms = request_data.rooms
+        teachers = request_data.teachers
+        subjects = request_data.subjects
+        batch_subjects = request_data.batch_subjects
+        fixed_groups = request_data.fixed_groups
+        slots_per_day = max(1, int(request_data.slots_per_day))
 
-    slots_per_day = 7   # TODO: store in DB later
-    days = 5
+    # Lists are not hashable — OR-Tools dict keys use tuple(batch_ids, ...)
+    fixed_groups = {
+        int(sid): [tuple(g) for g in grps]
+        for sid, grps in fixed_groups.items()
+    }
+
+    if not batches or not timeslots or not rooms or not fixed_groups:
+        return {
+            "status": "NO_SOLUTION",
+            "schedule": [],
+            "solve_time": 0.0,
+        }
+
+    max_t = max(timeslots)
 
     # Variables
     x = {}
@@ -49,16 +76,19 @@ def solve_timetable(request_data):
 
     # Start variables for multi-period sessions
     for s in fixed_groups:
-        duration = subjects[s].get("duration", 1)
+        duration = max(1, int(subjects[s].get("duration", 1)))
         for group in fixed_groups[s]:
             for t in timeslots:
                 slot_in_day = t % slots_per_day
-                if slot_in_day <= slots_per_day - duration:
-                    for r in rooms:
-                        for teacher in subjects[s]["teachers"]:
-                            start_x[group, s, t, r, teacher] = model.NewBoolVar(
-                                f"start_{group}{s}{t}{r}{teacher}"
-                            )
+                if slot_in_day > slots_per_day - duration:
+                    continue
+                if t + duration - 1 > max_t:
+                    continue
+                for r in rooms:
+                    for teacher in subjects[s]["teachers"]:
+                        start_x[group, s, t, r, teacher] = model.NewBoolVar(
+                            f"start_{group}{s}{t}{r}{teacher}"
+                        )
 
     # Constraints: subject per week
     for s in fixed_groups:
@@ -76,7 +106,7 @@ def solve_timetable(request_data):
 
     # Link start_x to group_x occupancy
     for s in fixed_groups:
-        duration = subjects[s].get("duration", 1)
+        duration = max(1, int(subjects[s].get("duration", 1)))
         for group in fixed_groups[s]:
             for r in rooms:
                 for teacher in subjects[s]["teachers"]:
@@ -85,7 +115,12 @@ def solve_timetable(request_data):
                             continue
                         for k in range(duration):
                             t = t0 + k
-                            model.Add(start_x[group, s, t0, r, teacher] <= group_x[group, s, t, r, teacher])
+                            if t > max_t or (group, s, t, r, teacher) not in group_x:
+                                continue
+                            model.Add(
+                                start_x[group, s, t0, r, teacher]
+                                <= group_x[group, s, t, r, teacher]
+                            )
 
     # Teacher availability
     for b in batches:

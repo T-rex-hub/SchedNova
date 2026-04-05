@@ -33,6 +33,27 @@ const debounce = (func, delay) => {
 
 const colors = ["#FFD166", "#1D9AF0", "#FF6B6B", "#06D6A0", "#6A00F4", "#F79C66"];
 
+// Align IDs across API (number), JSON edge cases (string), and <select> values (string).
+const normalizeDeptId = (v) => {
+  if (v === undefined || v === null || v === "") return null;
+  return String(v);
+};
+
+const sameDeptId = (a, b) => {
+  const na = normalizeDeptId(a);
+  const nb = normalizeDeptId(b);
+  return na !== null && nb !== null && na === nb;
+};
+
+const deptRowId = (dept) =>
+  dept?.department_id ?? dept?.id ?? dept?.departmentId;
+
+const batchDepartmentId = (b) =>
+  b?.department_id ??
+  b?.departmentId ??
+  b?.department?.department_id ??
+  b?.department?.id;
+
 // Initial data (empty, will fetch from backend)
 const initialData = {
   batches: [],
@@ -146,6 +167,7 @@ export default function Groups() {
     } else {
       const isDuplicate = groups.some(
         (group) =>
+          sameDeptId(group.department_id, selectedDepartment) &&
           group.name.trim().toLowerCase() === newGroupName.trim().toLowerCase()
       );
       if (isDuplicate) {
@@ -161,6 +183,17 @@ export default function Groups() {
       .filter(Boolean);
 
     if (selectedBatchIds.length === 0) hasError = true;
+
+    const batchesForDept = selectedBatchIds.every((bid) => {
+      const batch = batches.find(
+        (b) => String(b.batch_id ?? b.id) === String(bid)
+      );
+      return (
+        batch &&
+        sameDeptId(batchDepartmentId(batch), selectedDepartment)
+      );
+    });
+    if (!batchesForDept) hasError = true;
 
     const selectedRoomTypes = roomRows
       .map((r) => r.roomType)
@@ -308,20 +341,20 @@ export default function Groups() {
                   {/* Department Based Groups */}
                   <div className="space-y-8">
                     {departments.map((dept) => {
-                      /*
-                        Temporarily remove department filtering because backend
-                        field names may not match exactly. Always show batches
-                        fetched from the backend so the dropdown is never empty.
-                      */
-                      const batchList = Array.isArray(batches) ? batches : [];
+                      const deptId = deptRowId(dept);
+                      const batchList = Array.isArray(batches)
+                        ? batches.filter((b) =>
+                            sameDeptId(batchDepartmentId(b), deptId)
+                          )
+                        : [];
 
-                      const deptGroups = groups.filter(
-                        (g) => g.department_id === dept.department_id
+                      const deptGroups = groups.filter((g) =>
+                        sameDeptId(g.department_id, deptId)
                       );
 
                       return (
                         <div
-                          key={dept.department_id}
+                          key={deptId ?? dept.department_name}
                           className="p-6 rounded-xl bg-purple-800/70 shadow-lg border border-purple-700"
                         >
                           <div className="flex justify-between items-center mb-4">
@@ -329,7 +362,7 @@ export default function Groups() {
 
                             <motion.button
                               onClick={() => {
-                                setSelectedDepartment(dept.department_id);
+                                setSelectedDepartment(deptId);
                                 setShowCreateGroup(true);
                               }}
                               whileHover={{ scale: 1.1 }}
@@ -340,7 +373,8 @@ export default function Groups() {
                             </motion.button>
                           </div>
 
-                          {showCreateGroup && selectedDepartment === dept.department_id && (
+                          {showCreateGroup &&
+                            sameDeptId(selectedDepartment, deptId) && (
                             <div className="space-y-2 bg-purple-900/70 p-4 rounded-lg mb-4">
                               <h4 className="text-lg font-semibold text-center mb-4">Create New Group</h4>
 

@@ -58,7 +58,7 @@ export default function WelcomePage() {
       title: "Saved Timetable",
       desc: "Access and manage all your previously generated timetables in one place.",
       icon: <FileText className="w-10 h-10 mx-auto mb-4 text-yellow-300" />,
-      link: "/workload",
+      link: "/saved-timetables",
     },
     {
       title: "Analytic & Reports",

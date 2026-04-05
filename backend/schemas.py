@@ -63,7 +63,9 @@ class RequestData(BaseModel):
     teachers: Dict[int, TeacherInput]
     subjects: Dict[int, SubjectInput]
     batch_subjects: Dict[int, Dict[int, int]]   # batch_id → {subject_id: per_week}
-    fixed_groups: Dict[int, List[List[int]]]    # group_id → [[batch_ids]]
+    fixed_groups: Dict[int, List[List[int]]]    # subject_id → [[batch_ids]] (joint sessions)
+    slots_per_day: int = 7
+    num_days: int = 5
 
 
 # ------------------ TIMETABLE RESPONSE ------------------

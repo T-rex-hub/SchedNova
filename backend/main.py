@@ -1,12 +1,9 @@
-from fastapi import FastAPI, Depends, Query
+from fastapi import FastAPI, Depends, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import datetime
-from pydantic import parse_obj_as
-from fastapi import HTTPException
+from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
-from datetime import timedelta
 import os
 from backend.routers.classrooms import router as classrooms_router
 from backend import db_utils, models, schemas, database
@@ -14,12 +11,7 @@ from backend.routers.auth import router as auth_router
 from backend.routers.timeslots import router as timeslots_router
 from backend.routers.timetable import router as timetable_router
 from backend.timetable_solver import solve_timetable
-from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import departments
-from backend.routers import subjects
-from backend.routers import teacher
-from backend.routers import batch
-from backend.routers import groups
+from backend.routers import departments, subjects, teacher, batch, groups
 app = FastAPI()
 
 
@@ -28,7 +20,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 2
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # ---------------- CORS ----------------
 app.add_middleware(
@@ -98,13 +90,53 @@ def solve_timetable_endpoint(
     db: Session = Depends(get_db)
 ):
     raw_data = db_utils.fetch_timetable_data(db, user.user_id)
-    request_data = parse_obj_as(schemas.RequestData, raw_data)
+    timeslots_meta = raw_data.pop("timeslots_meta", [])
+    display_lookups = raw_data.pop("display_lookups", {})
+
+    if not raw_data.get("timeslots"):
+        raise HTTPException(
+            status_code=400,
+            detail="No periods defined. Add timeslots under Schedule Configuration first.",
+        )
+    if not raw_data.get("rooms"):
+        raise HTTPException(
+            status_code=400,
+            detail="No classrooms found. Add rooms before generating a timetable.",
+        )
+    if not raw_data.get("batches") or not raw_data.get("batch_subjects"):
+        raise HTTPException(
+            status_code=400,
+            detail="No batches with subjects. Complete batches and subject assignment first.",
+        )
+    if not raw_data.get("subjects"):
+        raise HTTPException(
+            status_code=400,
+            detail="No schedulable subjects. Assign teachers to subjects first.",
+        )
+
+    request_data = schemas.RequestData.model_validate(raw_data)
 
     solved = solve_timetable(request_data)
 
+    if solved.get("status") != "OK":
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Solver could not find a feasible timetable. Relax constraints or add more rooms/teachers.",
+                "status": solved.get("status"),
+                "solve_time": solved.get("solve_time"),
+            },
+        )
+
+    payload = {
+        **solved,
+        "timeslots_meta": timeslots_meta,
+        "display_lookups": display_lookups,
+    }
+
     new_tt = models.Timetable(
         user_id=user.user_id,
-        data=solved,
+        data=payload,
         created_at=datetime.utcnow()
     )
 
@@ -114,7 +146,7 @@ def solve_timetable_endpoint(
 
     return {
         "timetable_id": new_tt.timetable_id,
-        "timetable": solved
+        "timetable": payload
     }
 
 # ---------------- Get saved timetable ----------------
@@ -139,4 +171,52 @@ def get_saved_timetable(
         "timetable_id": tt.timetable_id,
         "timetable": tt.data
     }
-    
+
+
+@app.get("/timetables")
+def list_timetables(
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.query(models.Timetable)
+        .filter(models.Timetable.user_id == user.user_id)
+        .order_by(models.Timetable.timetable_id.desc())
+        .all()
+    )
+    out = []
+    for r in rows:
+        data = r.data if isinstance(r.data, dict) else {}
+        sched = data.get("schedule") or []
+        out.append(
+            {
+                "timetable_id": r.timetable_id,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "status": data.get("status"),
+                "solve_time": data.get("solve_time"),
+                "entries_count": len(sched) if isinstance(sched, list) else 0,
+            }
+        )
+    return out
+
+
+@app.delete("/timetable/{timetable_id}")
+def delete_timetable(
+    timetable_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tt = (
+        db.query(models.Timetable)
+        .filter(
+            models.Timetable.timetable_id == timetable_id,
+            models.Timetable.user_id == user.user_id,
+        )
+        .first()
+    )
+    if not tt:
+        raise HTTPException(status_code=404, detail="Timetable not found")
+    db.delete(tt)
+    db.commit()
+    return {"message": "Timetable deleted", "timetable_id": timetable_id}
+

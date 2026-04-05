@@ -3,7 +3,7 @@ import urllib
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 
@@ -22,18 +22,18 @@ def _build_database_url_from_parts() -> str | None:
         return None
 
     safe_password = urllib.parse.quote_plus(password)
-    return f"postgresql+psycopg2://{user}:{safe_password}@{host}:{port}/{name}"
+    return f"postgresql+psycopg://{user}:{safe_password}@{host}:{port}/{name}"
 
 
 DATABASE_URL = os.getenv("DATABASE_URL") or _build_database_url_from_parts()
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL or DB_* env vars must be set")
 
-# Normalize scheme to psycopg2 if no explicit driver is provided.
+# Normalize scheme to psycopg if no explicit driver is provided.
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
 elif DATABASE_URL.startswith("postgresql://") and "postgresql+" not in DATABASE_URL:
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 DB_ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))

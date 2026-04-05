@@ -9,6 +9,16 @@ router = APIRouter(
     tags=["Timeslots"]
 )
 
+DAY_ORDER = {
+    "Monday": 0,
+    "Tuesday": 1,
+    "Wednesday": 2,
+    "Thursday": 3,
+    "Friday": 4,
+    "Saturday": 5,
+    "Sunday": 6,
+}
+
 # -------------------------
 # ADD / UPDATE TIMESLOTS
 # -------------------------
@@ -41,3 +51,31 @@ def add_timeslots(
     db.commit()
 
     return {"status": "OK", "message": "Timeslots saved"}
+
+
+@router.get("/list")
+def list_timeslots(
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rows = db.query(models.Timeslot).filter(
+        models.Timeslot.user_id == user.user_id
+    ).all()
+    ordered = sorted(
+        rows,
+        key=lambda ts: (
+            DAY_ORDER.get(ts.day_of_week, 99),
+            ts.slot_number,
+            ts.timeslot_id,
+        ),
+    )
+    return [
+        {
+            "timeslot_id": ts.timeslot_id,
+            "day_of_week": ts.day_of_week,
+            "slot_number": ts.slot_number,
+            "start_time": ts.start_time,
+            "end_time": ts.end_time,
+        }
+        for ts in ordered
+    ]

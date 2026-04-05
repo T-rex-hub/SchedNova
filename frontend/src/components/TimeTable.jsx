@@ -1,59 +1,65 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Play
-} from "lucide-react";
-
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Play } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
-
 import { useNavigate } from "react-router-dom";
 
-
-// Debounce utility function to limit write operations to a backend
-const debounce = (func, delay) => {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      func.apply(this, args);
-    }, delay);
-  };
-};
+const API_BASE = "http://127.0.0.1:8000";
 
 export default function TimeTable() {
   const [loading, setLoading] = useState(false);
   const [generationStatus, setGenerationStatus] = useState(null);
-  const [isGenerationComplete, setIsGenerationComplete] = useState(false); // New state for the button
+  const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [isContentVisible, setIsContentVisible] = useState(false);
+  const [errorDetail, setErrorDetail] = useState(null);
 
   const navigate = useNavigate();
 
-
   useEffect(() => {
-    setTimeout(() => {
-      setIsContentVisible(true);
-    }, 100);
+    const t = setTimeout(() => setIsContentVisible(true), 100);
+    return () => clearTimeout(t);
   }, []);
 
   const handleGenerateTimetable = async () => {
     setLoading(true);
-    setGenerationStatus("Generating timetable...");
-    setIsGenerationComplete(false); // Reset on each new generation attempt
-    
-    // Simulate API call to backend
-    try {
-      const response = await new Promise(resolve => setTimeout(() => {
-        resolve({ status: 200, data: "Timetable generated successfully!" });
-      }, 3000));
+    setGenerationStatus("Generating timetable from your saved data…");
+    setIsGenerationComplete(false);
+    setErrorDetail(null);
 
-      if (response.status === 200) {
-        setGenerationStatus("Success! Your timetable is ready.");
-        setIsGenerationComplete(true); // Set to true on success to show the button
-      } else {
-        setGenerationStatus("Failed to generate timetable. Please try again.");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/solve-timetable`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg =
+          typeof data.detail === "string"
+            ? data.detail
+            : data.detail?.message ||
+              data.detail?.detail ||
+              "Could not generate timetable.";
+        setGenerationStatus("Generation failed.");
+        setErrorDetail(msg);
+        return;
       }
+
+      if (data.timetable_id != null) {
+        sessionStorage.setItem("lastTimetableId", String(data.timetable_id));
+      }
+
+      setGenerationStatus(
+        `Success. Solver finished in ${(data.timetable?.solve_time ?? 0).toFixed(2)}s.`
+      );
+      setIsGenerationComplete(true);
     } catch (error) {
-      setGenerationStatus("An error occurred. Please check your data and network connection.");
+      setGenerationStatus("Network error.");
+      setErrorDetail(error?.message || "Check that the API is running.");
       console.error("Error generating timetable:", error);
     } finally {
       setLoading(false);
@@ -62,7 +68,6 @@ export default function TimeTable() {
 
   return (
     <AppLayout>
-
       <main className="flex-1 p-8 overflow-y-auto flex items-center justify-center">
         {isContentVisible && (
           <motion.div
@@ -77,7 +82,9 @@ export default function TimeTable() {
             </h3>
 
             <p className="text-white/70 mb-8">
-              Click the button below to generate a new timetable based on all the data you've entered.
+              Builds a timetable from your database: periods, rooms, departments,
+              teachers, batches, groups, and subject assignments. Nothing here is
+              hardcoded.
             </p>
 
             <motion.button
@@ -91,12 +98,19 @@ export default function TimeTable() {
                   : "bg-yellow-400 text-purple-900 hover:bg-yellow-500"
               }`}
             >
-              {loading ? "Generating..." : "Generate Timetable"}
+              <Play className="w-5 h-5" />
+              {loading ? "Generating…" : "Generate Timetable"}
             </motion.button>
 
             {generationStatus && (
               <div className="mt-4 p-4 rounded-lg bg-white/10 text-white">
                 {generationStatus}
+              </div>
+            )}
+
+            {errorDetail && (
+              <div className="mt-2 p-4 rounded-lg bg-red-900/40 text-red-100 text-sm text-left whitespace-pre-wrap">
+                {errorDetail}
               </div>
             )}
 
@@ -114,7 +128,6 @@ export default function TimeTable() {
         )}
       </main>
 
-      {/* Navigation Buttons */}
       <div className="flex justify-between mt-8 px-8">
         <a
           href="/group"
@@ -122,10 +135,8 @@ export default function TimeTable() {
         >
           ← Previous
         </a>
-
-        <span></span>
+        <span />
       </div>
-
     </AppLayout>
   );
 }

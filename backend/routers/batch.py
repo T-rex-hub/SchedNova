@@ -36,11 +36,14 @@ def add_batches(data: dict, db: Session = Depends(get_db), user=Depends(get_curr
             db.add(new_batch)
             db.flush()
             for subject_id in subjects:
+                try:
+                    sid = int(subject_id)
+                except (TypeError, ValueError):
+                    continue
                 batch_subject = models.BatchSubject(
                     batch_id=new_batch.batch_id,
-                    subject_id=subject_id
+                    subject_id=sid,
                 )
-
                 db.add(batch_subject)
 
             inserted += 1
@@ -77,6 +80,7 @@ def get_batches(
             "batch_id": batch.batch_id,
             "batch_name": batch.batch_name,
             "department_id": batch.department_id,
+            "department_name": batch.department.department_name if batch.department else None,
             "subjects": subject_ids
         })
 
