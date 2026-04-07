@@ -64,7 +64,8 @@ CREATE TABLE IF NOT EXISTS subject_room_types (
     id SERIAL PRIMARY KEY,
     subject_id INTEGER NOT NULL REFERENCES subjects(subject_id) ON DELETE CASCADE,
     room_type VARCHAR(100) NOT NULL,
-    classes_per_week INTEGER NOT NULL
+    classes_per_week INTEGER NOT NULL,
+    duration INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS teachers (

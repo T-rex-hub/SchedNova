@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
@@ -33,6 +34,15 @@ app.add_middleware(
 
 # ---------------- DB ----------------
 models.Base.metadata.create_all(bind=database.engine)
+
+# Ensure new column exists for existing databases.
+with database.engine.begin() as conn:
+    conn.execute(
+        text(
+            "ALTER TABLE IF EXISTS subject_room_types "
+            "ADD COLUMN IF NOT EXISTS duration INTEGER NOT NULL DEFAULT 1"
+        )
+    )
 
 def get_db():
     db = database.SessionLocal()

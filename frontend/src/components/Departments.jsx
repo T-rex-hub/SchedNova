@@ -77,7 +77,7 @@ if (Array.isArray(data)) {
       ...prev,
       [deptName]: [
         ...(prev[deptName] || []),
-        { subject_name: "", course_code: "", rooms: [{ room_type: "", classes_per_week: "" }] }
+        { subject_name: "", course_code: "", rooms: [{ room_type: "", classes_per_week: "", duration: "" }] }
       ]
     }));
   };
@@ -106,7 +106,7 @@ if (Array.isArray(data)) {
         // Initialize with one empty subject field when selected
         setDeptSubjects(s => ({
           ...s,
-          [name]: [{ subject_name: "", course_code: "", rooms: [{ room_type: "", classes_per_week: "" }] }]
+          [name]: [{ subject_name: "", course_code: "", rooms: [{ room_type: "", classes_per_week: "", duration: "" }] }]
         }));
         return [...prev, name];
       }
@@ -133,7 +133,8 @@ if (Array.isArray(data)) {
             course_code: s.course_code,
             rooms: (s.rooms || []).map(r => ({
               room_type: r.room_type,
-              classes_per_week: parseInt(r.classes_per_week) || 0
+              classes_per_week: parseInt(r.classes_per_week) || 0,
+              duration: parseInt(r.duration) || 1
             }))
           }))
       }))
@@ -189,7 +190,7 @@ if (Array.isArray(data)) {
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto py-12 px-6 space-y-8">
+      <div className="max-w-6xl mx-auto py-12 px-6 space-y-8">
         
         {/* Main Content Area */}
         <div className="space-y-8 p-8 bg-purple-900/40 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/10">
@@ -219,7 +220,7 @@ if (Array.isArray(data)) {
                 className="bg-purple-800/30 border border-purple-400/20 rounded-2xl overflow-hidden shadow-inner"
               >
                 <div className="p-6 space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     
                     {/* Step 1: Manage Departments */}
                     <div className="space-y-5">
@@ -323,8 +324,11 @@ if (Array.isArray(data)) {
                                     {/* Room/Class Section */}
                                     <div className="space-y-2">
                                       {(subj.rooms || []).map((r, rIdx) => (
-                                        <div key={rIdx} className="grid grid-cols-12 gap-2">
-                                          <div className="col-span-7">
+                                        <div key={rIdx} className="grid grid-cols-1 md:grid-cols-12 gap-2">
+                                          <div className="md:col-span-5">
+                                            <label className="block text-[10px] font-semibold text-purple-200 mb-1">
+                                              Room Type
+                                            </label>
                                             <select
                                               value={r.room_type}
                                               onChange={(e) => {
@@ -332,7 +336,7 @@ if (Array.isArray(data)) {
                                                 updated[rIdx].room_type = e.target.value;
                                                 updateSubjectField(deptName, sIdx, "rooms", updated);
                                               }}
-                                              className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white"
+                                              className="w-full text-xs px-3 py-2.5 rounded-lg bg-purple-950/90 border border-purple-500/70 text-white placeholder-purple-300 focus:outline-none focus:ring-1 focus:ring-yellow-400/60"
                                             >
                                               <option value="" className="bg-purple-950">Select Room</option>
                                               {Array.isArray(rooms) && rooms.map(room => (
@@ -342,27 +346,47 @@ if (Array.isArray(data)) {
                                               ))}
                                             </select>
                                           </div>
-                                          <div className="col-span-4">
+                                          <div className="md:col-span-3">
+                                            <label className="block text-[10px] font-semibold text-purple-200 mb-1">
+                                              Total Periods/Week
+                                            </label>
                                             <input
                                               type="number"
                                               min="1"
-                                              placeholder="/week"
+                                              placeholder="e.g. 4"
                                               value={r.classes_per_week}
                                               onChange={(e) => {
                                                 const updated = [...(subj.rooms || [])];
                                                 updated[rIdx].classes_per_week = e.target.value;
                                                 updateSubjectField(deptName, sIdx, "rooms", updated);
                                               }}
-                                              className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white"
+                                              className="w-full text-xs px-3 py-2.5 rounded-lg bg-purple-950/90 border border-purple-500/70 text-white placeholder-purple-300 focus:outline-none focus:ring-1 focus:ring-yellow-400/60"
                                             />
                                           </div>
-                                          <div className="col-span-1 flex items-center">
+                                          <div className="md:col-span-3">
+                                            <label className="block text-[10px] font-semibold text-purple-200 mb-1">
+                                              Continuous Length
+                                            </label>
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              placeholder="e.g. 2"
+                                              value={r.duration}
+                                              onChange={(e) => {
+                                                const updated = [...(subj.rooms || [])];
+                                                updated[rIdx].duration = e.target.value;
+                                                updateSubjectField(deptName, sIdx, "rooms", updated);
+                                              }}
+                                              className="w-full text-xs px-3 py-2.5 rounded-lg bg-purple-950/90 border border-purple-500/70 text-white placeholder-purple-300 focus:outline-none focus:ring-1 focus:ring-yellow-400/60"
+                                            />
+                                          </div>
+                                          <div className="md:col-span-1 flex items-end md:pb-0.5">
                                             <button
                                               onClick={() => {
                                                 const updated = (subj.rooms || []).filter((_, i) => i !== rIdx);
                                                 updateSubjectField(deptName, sIdx, "rooms", updated);
                                               }}
-                                              className="text-red-400"
+                                              className="text-red-300 hover:text-red-200"
                                             >
                                               <Minus size={12} />
                                             </button>
@@ -372,7 +396,7 @@ if (Array.isArray(data)) {
 
                                       <button
                                         onClick={() => {
-                                          const updated = [...(subj.rooms || []), { room_type: "", classes_per_week: "" }];
+                                          const updated = [...(subj.rooms || []), { room_type: "", classes_per_week: "", duration: "" }];
                                           updateSubjectField(deptName, sIdx, "rooms", updated);
                                         }}
                                         className="text-[10px] text-yellow-400 flex items-center gap-1"

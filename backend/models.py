@@ -145,6 +145,10 @@ class SubjectRoomType(Base):
 
     classes_per_week = Column(Integer, nullable=False)
 
+    # Continuous session length for this specific room type.
+    # Example: if duration=2, one "start" occupies 2 consecutive slots.
+    duration = Column(Integer, nullable=False, default=1)
+
     subject = relationship("Subject", back_populates="room_types")
 
 class Teacher(Base):

@@ -112,7 +112,14 @@ def _subject_defaults(db: Session, subject_id: int) -> tuple[str, int, int]:
         return "Classroom", 3, duration
     room_type = rts[0].room_type
     per_week = sum(rt.classes_per_week or 0 for rt in rts) or 3
-    return room_type, per_week, duration
+    # Prefer room-type specific duration for solver multi-slot sessions.
+    # If durations differ across room types, take the max to avoid under-blocking slots.
+    try:
+        durations = [max(1, int(getattr(rt, "duration", 1) or 1)) for rt in rts]
+        duration_from_rts = max(durations) if durations else duration
+    except Exception:
+        duration_from_rts = duration
+    return room_type, per_week, duration_from_rts
 
 
 def _uf_find(uf: dict, x: int) -> int:

@@ -26,6 +26,7 @@ import Batches from "./components/Batches"
 import TimeTable from "./components/TimeTable";
 import ShowTimetable from "./components/ShowTimeTable";
 import SavedTimetables from "./components/SavedTimetables";
+import ManageData from "./components/ManageData";
 
 const isAuthenticated = () => {
   const token = localStorage.getItem("token");
@@ -313,6 +314,14 @@ export default function App() {
           element={
             <RequireAuth>
               <SavedTimetables />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/manage-data"
+          element={
+            <RequireAuth>
+              <ManageData />
             </RequireAuth>
           }
         />

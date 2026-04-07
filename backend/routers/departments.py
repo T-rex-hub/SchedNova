@@ -8,6 +8,12 @@ from backend import models
 router = APIRouter(prefix="/departments", tags=["Departments"])
 
 
+def _norm_room_type(room_type: str) -> str:
+    if room_type is None:
+        return ""
+    return str(room_type).strip().lower().replace(" ", "_")
+
+
 @router.post("/add")
 def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(get_current_user)):
 
@@ -42,8 +48,9 @@ def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(ge
 
                 # Insert room types if provided
                 for room in subject.get("rooms", []):
-                    room_type = room.get("room_type")
+                    room_type = _norm_room_type(room.get("room_type"))
                     classes_per_week = room.get("classes_per_week", 0)
+                    duration = int(room.get("duration", 1) or 1)
 
                     if not room_type:
                         continue
@@ -51,7 +58,8 @@ def add_departments(data: dict, db: Session = Depends(get_db), user = Depends(ge
                     room_entry = models.SubjectRoomType(
                         subject_id=new_subject.subject_id,
                         room_type=room_type,
-                        classes_per_week=classes_per_week
+                        classes_per_week=classes_per_week,
+                        duration=duration,
                     )
 
                     db.add(room_entry)

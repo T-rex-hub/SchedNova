@@ -15,7 +15,8 @@ import {
   ChevronDown,
   FileText,
   BarChart3,
-  UserCheck
+  UserCheck,
+  Database
 } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
 
@@ -71,6 +72,12 @@ export default function WelcomePage() {
       desc: "EEasily assign substitute teachers for missed classes.",
       icon: <UserCheck className="w-10 h-10 mx-auto mb-4 text-yellow-300" />,
       link: "/courses",
+    },
+    {
+      title: "Manage Data",
+      desc: "View all your added data and delete it from one place.",
+      icon: <Database className="w-10 h-10 mx-auto mb-4 text-yellow-300" />,
+      link: "/manage-data",
     },
     
   ];
