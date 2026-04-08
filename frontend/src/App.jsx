@@ -53,14 +53,14 @@ function Home({ openLogin, openSignup }) {
   return (
     <>
       {/* Navbar */}
-      <header className="flex justify-between items-center px-24 py-5 shadow-sm fixed top-0 left-0 right-0 z-50 bg-[#5523AB]">
+      <header className="flex justify-between items-center px-4 sm:px-6 md:px-12 lg:px-24 py-4 md:py-5 shadow-sm fixed top-0 left-0 right-0 z-50 bg-[#5523AB]">
         <h1
-          className="font-bold text-3xl leading-tight m-0"
+          className="font-bold text-2xl md:text-3xl leading-tight m-0"
           style={{ color: "white"}}
         >
           SchedNova
         </h1>
-        <nav className="hidden md:flex gap-6 text-lg font-medium">
+        <nav className="flex gap-3 sm:gap-4 md:gap-6 text-sm sm:text-base md:text-lg font-medium">
           {["Features", "About"].map((link, i) => (
             <a
               key={i}
@@ -80,9 +80,9 @@ function Home({ openLogin, openSignup }) {
       </header>
 
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center text-center px-6 md:px-20 min-h-screen">
+      <section className="flex flex-col items-center justify-center text-center px-4 sm:px-6 md:px-20 min-h-screen pt-16">
         <motion.h2
-          className="text-4xl md:text-6xl font-extrabold mb-4 drop-shadow-lg"
+          className="text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4 drop-shadow-lg"
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
@@ -91,7 +91,7 @@ function Home({ openLogin, openSignup }) {
         </motion.h2>
 
         <motion.p
-          className="text-lg md:text-xl max-w-2xl mb-6"
+          className="text-base sm:text-lg md:text-xl max-w-2xl mb-6"
         >
           SchedNova is a smart timetable and classroom scheduling system designed
           to minimize conflicts, save time, and improve academic productivity.
@@ -109,12 +109,12 @@ function Home({ openLogin, openSignup }) {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="px-6 md:px-20 py-16 bg-gradient-to-r from-[#3B0D91] via-[#6A00F4] to-[#1D9AF0]">
+      <section id="features" className="px-4 sm:px-6 md:px-20 py-12 md:py-16 bg-gradient-to-r from-[#3B0D91] via-[#6A00F4] to-[#1D9AF0]">
         <br></br><br></br>
         <h3 className="text-3xl font-bold text-center mb-12 text-white">
           Key Features
         </h3>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 md:gap-8">
           {[
             { icon: <Calendar className="w-10 h-10 text-white" />, title: "Optimized Scheduling", desc: "Generate clash-free timetables that maximize resource utilization." },
             { icon: <Users className="w-10 h-10 text-white" />, title: "Multi-department Support", desc: "Handle UG, PG, and cross-department electives effortlessly." },
@@ -132,7 +132,7 @@ function Home({ openLogin, openSignup }) {
       </section>
 
       {/* About Section */}
-      <section id="about" className="px-6 md:px-20 py-16 text-center bg-gradient-to-r from-[#3B0D91] via-[#6A00F4] to-[#1D9AF0]">
+      <section id="about" className="px-4 sm:px-6 md:px-20 py-12 md:py-16 text-center bg-gradient-to-r from-[#3B0D91] via-[#6A00F4] to-[#1D9AF0]">
         <h3 className="text-3xl font-bold mb-6 text-white">WHY CHOOSE US?</h3>
         <p className="max-w-3xl mx-auto text-lg text-white/90">
           Built for Higher Education under NEP 2020, SchedNova solves the challenges of manual timetable creation.

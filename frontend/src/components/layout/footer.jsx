@@ -11,8 +11,8 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#5523AB] py-10 text-white">
-      <div className="max-w-6xl mx-auto px-6 md:px-12 grid md:grid-cols-3 gap-8 text-center md:text-left">
+    <footer className="bg-[#5523AB] py-8 md:py-10 text-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 text-center md:text-left">
 
         <div>
           <h4 className="text-xl font-bold mb-3" style={{ color: schedNovaColor }}>

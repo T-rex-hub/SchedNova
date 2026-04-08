@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AppLayout from "./layout/AppLayout";
+import { API_BASE } from "../config/api";
 
 // Simulated data to mimic fetching from your FastAPI backend
 const initialData = {
@@ -114,7 +115,7 @@ export default function AddPeriods() {
       return false;
     }
     console.log("SLOTS BEING SENT:", slots);
-    const res = await fetch("http://127.0.0.1:8000/timeslots/add", {
+    const res = await fetch(`${API_BASE}/timeslots/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -145,7 +146,7 @@ export default function AddPeriods() {
   return (
     <AppLayout>
 
-      <div className="max-w-4xl mx-auto space-y-8 p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg">
+      <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 p-3 sm:p-4 md:p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg">
 
         <h3 className="text-xl font-semibold mb-4 text-center">
           Schedule Configuration
@@ -175,14 +176,14 @@ export default function AddPeriods() {
                 >
                   <p className="mb-2">Period {index + 1}</p>
 
-                  <div className="flex gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     <input
                       placeholder="From HH"
                       value={slot.fromHour}
                       onChange={(e) =>
                         handleTimeSlotChange(index, "fromHour", e.target.value)
                       }
-                      className="w-24 px-2 py-1 rounded bg-purple-800 text-white"
+                      className="w-full px-2 py-2 rounded bg-purple-800 text-white"
                     />
 
                     <input
@@ -191,7 +192,7 @@ export default function AddPeriods() {
                       onChange={(e) =>
                         handleTimeSlotChange(index, "fromMinute", e.target.value)
                       }
-                      className="w-24 px-2 py-1 rounded bg-purple-800 text-white"
+                      className="w-full px-2 py-2 rounded bg-purple-800 text-white"
                     />
 
                     <input
@@ -200,7 +201,7 @@ export default function AddPeriods() {
                       onChange={(e) =>
                         handleTimeSlotChange(index, "toHour", e.target.value)
                       }
-                      className="w-24 px-2 py-1 rounded bg-purple-800 text-white"
+                      className="w-full px-2 py-2 rounded bg-purple-800 text-white"
                     />
 
                     <input
@@ -209,7 +210,7 @@ export default function AddPeriods() {
                       onChange={(e) =>
                         handleTimeSlotChange(index, "toMinute", e.target.value)
                       }
-                      className="w-24 px-2 py-1 rounded bg-purple-800 text-white"
+                      className="w-full px-2 py-2 rounded bg-purple-800 text-white"
                     />
                   </div>
 
@@ -228,7 +229,7 @@ export default function AddPeriods() {
         <div>
           <h4 className="mb-2">Select Working Days</h4>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {allDays.map((day) => (
               <button
                 key={day}
@@ -252,10 +253,10 @@ export default function AddPeriods() {
 
       </div>
 
-      <div className="flex justify-end max-w-4xl mx-auto mt-8">
+      <div className="flex justify-stretch sm:justify-end max-w-4xl mx-auto mt-6 md:mt-8">
         <button
           onClick={handleNext}
-          className="px-6 py-3 rounded-lg bg-[#4A0D8D] text-white font-bold"
+          className="w-full sm:w-auto px-6 py-3 rounded-lg bg-[#4A0D8D] text-white font-bold"
         >
           Next
         </button>

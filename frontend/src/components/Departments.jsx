@@ -16,6 +16,7 @@ import {
   Minus
 } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
+import { API_BASE } from "../config/api";
 
 // --- Constants ---
 const COLORS = ["#FFD166", "#1D9AF0", "#FF6B6B", "#06D6A0", "#6A00F4", "#F79C66", "#9D4EDD", "#EF476F"];
@@ -30,7 +31,7 @@ useEffect(() => {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/classrooms/", {
+      const res = await fetch(`${API_BASE}/classrooms/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -142,7 +143,7 @@ if (Array.isArray(data)) {
 
     setIsLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/departments/add", {
+      const res = await fetch(`${API_BASE}/departments/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -190,19 +191,19 @@ if (Array.isArray(data)) {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto py-12 px-6 space-y-8">
+      <div className="max-w-6xl mx-auto py-6 sm:py-8 md:py-12 px-3 sm:px-4 md:px-6 space-y-6 md:space-y-8">
         
         {/* Main Content Area */}
-        <div className="space-y-8 p-8 bg-purple-900/40 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/10">
+        <div className="space-y-6 md:space-y-8 p-4 sm:p-5 md:p-8 bg-purple-900/40 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/10">
           
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <div>
               <h3 className="text-2xl font-bold tracking-tight text-white">Departments & Subjects</h3>
               <p className="text-purple-300 text-sm opacity-80">Define academic structure and courses</p>
             </div>
             <button
               onClick={() => setShowAddSection(!showAddSection)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg ${
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg ${
                 showAddSection ? "bg-red-500/90 hover:bg-red-500 text-white" : "bg-yellow-400 hover:bg-yellow-300 text-purple-900"
               }`}
             >
@@ -247,7 +248,7 @@ if (Array.isArray(data)) {
                               setNewDeptName("");
                             }
                           }} 
-                          className="bg-yellow-400 text-purple-900 p-3 rounded-xl hover:bg-yellow-300 transition-colors"
+                          className="bg-yellow-400 text-purple-900 p-3 rounded-xl hover:bg-yellow-300 transition-colors shrink-0"
                         >
                           <Plus size={22} strokeWidth={3} />
                         </button>
@@ -294,8 +295,8 @@ if (Array.isArray(data)) {
                               <div className="space-y-4">
                                 {deptSubjects[deptName]?.map((subj, sIdx) => (
                                   <div key={sIdx} className="space-y-2 pb-3 border-b border-purple-800/50 last:border-0">
-                                    <div className="grid grid-cols-12 gap-2">
-                                      <div className="col-span-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                      <div className="sm:col-span-8">
                                         <input
                                           placeholder="Subject Name"
                                           value={subj.subject_name}
@@ -303,7 +304,7 @@ if (Array.isArray(data)) {
                                           className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white placeholder-purple-500 focus:outline-none focus:ring-1 ring-yellow-400/50"
                                         />
                                       </div>
-                                      <div className="col-span-3">
+                                      <div className="sm:col-span-3">
                                         <input
                                           placeholder="Code"
                                           value={subj.course_code}
@@ -311,7 +312,7 @@ if (Array.isArray(data)) {
                                           className="w-full text-xs px-3 py-2 rounded-lg bg-purple-950/80 border border-purple-700 text-white placeholder-purple-500 focus:outline-none focus:ring-1 ring-yellow-400/50"
                                         />
                                       </div>
-                                      <div className="col-span-1 flex justify-end">
+                                      <div className="sm:col-span-1 flex justify-end">
                                         <button 
                                           onClick={() => removeSubjectField(deptName, sIdx)}
                                           disabled={deptSubjects[deptName].length <= 1}
@@ -433,7 +434,7 @@ if (Array.isArray(data)) {
           </AnimatePresence>
 
           {/* Search and Inventory */}
-          <div className="space-y-6 pt-4">
+          <div className="space-y-6 pt-2 md:pt-4">
             <div className="flex items-center gap-4">
               <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-purple-700"></div>
               <h4 className="text-xl font-bold whitespace-nowrap flex items-center gap-3 text-white">
@@ -495,11 +496,11 @@ if (Array.isArray(data)) {
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between items-center pt-4">
+        <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 pt-2 md:pt-4">
           <button
             type="button"
             onClick={handlePrevious}
-            className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-purple-800/80 hover:bg-purple-700 text-white font-black transition-all shadow-xl border border-white/5 active:scale-95"
+            className="w-full sm:w-auto flex justify-center items-center gap-3 px-8 py-4 rounded-2xl bg-purple-800/80 hover:bg-purple-700 text-white font-black transition-all shadow-xl border border-white/5 active:scale-95"
           >
             <ArrowLeft size={20} strokeWidth={3} />
             PREVIOUS
@@ -508,7 +509,7 @@ if (Array.isArray(data)) {
           <button
             type="button"
             onClick={handleNext}
-            className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-purple-800/80 hover:bg-purple-700 text-white font-black transition-all shadow-xl border border-white/5 active:scale-95"
+            className="w-full sm:w-auto flex justify-center items-center gap-3 px-8 py-4 rounded-2xl bg-purple-800/80 hover:bg-purple-700 text-white font-black transition-all shadow-xl border border-white/5 active:scale-95"
           >
             NEXT
             <ArrowRight size={20} strokeWidth={3} />

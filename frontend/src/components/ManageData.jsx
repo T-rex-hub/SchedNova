@@ -280,8 +280,8 @@ export default function ManageData() {
 
   return (
     <AppLayout hideSidebar>
-      <div className="min-h-screen text-white px-4 md:px-8 py-10 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+      <div className="min-h-screen text-white px-3 sm:px-4 md:px-8 py-6 sm:py-8 md:py-10 max-w-5xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
           <button
             type="button"
             onClick={() => navigate("/welcome")}
@@ -300,7 +300,7 @@ export default function ManageData() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6 sm:mb-8">
           <div className="p-3 rounded-2xl bg-yellow-400/15 border border-yellow-400/30">
             <Database className="w-7 h-7 text-yellow-300" />
           </div>
@@ -329,7 +329,7 @@ export default function ManageData() {
             Loading data...
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {sections.map((section, index) => (
               <motion.div
                 key={section.key}
@@ -345,7 +345,7 @@ export default function ManageData() {
                   const allSelected = ids.length > 0 && ids.every((id) => selected.includes(id));
                   return (
                     <>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                   <h2 className="font-semibold">{section.title}</h2>
                   <div className="flex items-center gap-2">
                     <button
@@ -405,7 +405,7 @@ export default function ManageData() {
                               <Square className="w-4 h-4" />
                             )}
                           </button>
-                          <span className="text-sm text-white/85 truncate flex-1">
+                          <span className="text-sm text-white/85 break-words min-w-0 flex-1">
                             {section.label(item)}
                           </span>
                           <button

@@ -17,16 +17,24 @@ app = FastAPI()
 
 
 # ---------------- AUTH CONFIG ----------------
-SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 2
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # ---------------- CORS ----------------
+raw_cors_origins = os.getenv(
+    "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+)
+allow_origins = [o.strip() for o in raw_cors_origins.split(",") if o.strip()]
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY env var is required")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

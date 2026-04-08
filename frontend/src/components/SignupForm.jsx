@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../config/api";
 
 export default function SignupForm({ switchToLogin, onSuccess }) {
   const [fullName, setFullName] = useState("");
@@ -20,7 +21,7 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:8000/auth/signup", {
+      const response = await fetch(`${API_BASE}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -70,7 +71,7 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
         client_id:
           "1050359938315-tv3elrkp7ih5clc8u6odtsj6cjosdh9t.apps.googleusercontent.com",
         callback: async (response) => {
-          const res = await fetch("http://127.0.0.1:8000/auth/google", {
+          const res = await fetch(`${API_BASE}/auth/google`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: response.credential }),

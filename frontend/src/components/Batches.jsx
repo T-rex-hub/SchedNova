@@ -9,6 +9,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
+import { API_BASE } from "../config/api";
 
 const debounce = (func, delay) => {
   let timer;
@@ -55,7 +56,7 @@ export default function BatchAdd() {
     const fetchDepartments = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://127.0.0.1:8000/departments/with-subjects", {
+        const res = await fetch(`${API_BASE}/departments/with-subjects`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -189,7 +190,7 @@ export default function BatchAdd() {
           }))
         ),
       };
-      await fetch("http://127.0.0.1:8000/batches/add", {
+      await fetch(`${API_BASE}/batches/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +214,7 @@ export default function BatchAdd() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-3xl mx-auto space-y-10 p-6 md:p-8"
+            className="max-w-5xl mx-auto space-y-8 md:space-y-10 p-3 sm:p-4 md:p-8"
           >
             <header className="text-center space-y-2">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400/20 to-purple-600/30 border border-yellow-400/30 mb-1">
@@ -238,7 +239,7 @@ export default function BatchAdd() {
                 >
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-yellow-400 via-yellow-400/60 to-transparent rounded-l-2xl" />
 
-                  <div className="p-6 md:p-7 pl-7 md:pl-8">
+                  <div className="p-4 sm:p-5 md:p-7 md:pl-8">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
                       <div>
                         <div className="flex items-center gap-2 text-yellow-400/90 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">
@@ -361,7 +362,7 @@ export default function BatchAdd() {
                                 )
                               }
                               placeholder="e.g. CSE-A or CSE-A, CSE-B, CSE-C"
-                              className="flex-1 px-4 py-3 rounded-lg bg-purple-950/60 text-white placeholder:text-white/35 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/80 focus:border-transparent text-sm"
+                              className="flex-1 min-w-0 px-4 py-3 rounded-lg bg-purple-950/60 text-white placeholder:text-white/35 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/80 focus:border-transparent text-sm"
                             />
                             <motion.button
                               type="button"
@@ -463,12 +464,12 @@ export default function BatchAdd() {
               ))}
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 pt-4">
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 sm:gap-4 pt-2 sm:pt-4">
               <motion.a
                 href="/teacher"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="inline-flex justify-center items-center gap-2 px-6 py-3 rounded-xl bg-purple-950/80 text-white font-semibold border border-white/10 hover:bg-purple-900/80 transition-colors text-sm"
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-6 py-3 rounded-xl bg-purple-950/80 text-white font-semibold border border-white/10 hover:bg-purple-900/80 transition-colors text-sm"
               >
                 ← Previous
               </motion.a>
@@ -477,7 +478,7 @@ export default function BatchAdd() {
                 onClick={handleNext}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="inline-flex justify-center items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-[#4A0D8D] to-[#6A00F4] text-white font-bold shadow-lg shadow-purple-900/40 text-sm"
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-[#4A0D8D] to-[#6A00F4] text-white font-bold shadow-lg shadow-purple-900/40 text-sm"
               >
                 Next →
               </motion.button>

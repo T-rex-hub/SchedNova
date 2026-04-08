@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import database, models, schemas
+from backend.deps import get_current_user
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
@@ -116,3 +117,38 @@ def google_login(data: dict, db: Session = Depends(get_db)):
 
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid Google token")
+
+
+@router.get("/me")
+def me(user=Depends(get_current_user)):
+    return {
+        "user_id": user.user_id,
+        "username": user.username,
+        "email": user.email,
+    }
+
+
+@router.post("/change-password")
+def change_password(
+    payload: dict,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    current_password = (payload or {}).get("current_password")
+    new_password = (payload or {}).get("new_password")
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Current and new password are required")
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    if not bcrypt.verify(current_password, user.pass_word):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    user.pass_word = bcrypt.hash(new_password)
+    db.add(user)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+
+@router.post("/logout-all")
+def logout_all_devices(user=Depends(get_current_user)):
+    # Stateless token system: client clears auth on all devices when possible.
+    return {"message": "Logged out from all devices (client-side token clear required)."}

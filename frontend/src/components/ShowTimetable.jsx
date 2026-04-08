@@ -2,8 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Printer, LoaderCircle, ArrowLeft } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
-
-const API_BASE = "http://127.0.0.1:8000";
+import { API_BASE } from "../config/api";
 
 const tailwindColors = [
   "red",
@@ -390,15 +389,15 @@ export default function ShowTimetable() {
   return (
     <AppLayout hideSidebar>
       <div className="printable-area">
-        <main className="flex-1 p-4 md:p-8">
+        <main className="flex-1 p-2 sm:p-3 md:p-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="max-w-7xl mx-auto"
           >
-            <div className="p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg">
-              <div className="flex flex-col md:flex-row justify-between items-center mb-6 no-print">
+            <div className="p-3 sm:p-4 md:p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg">
+              <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 mb-6 no-print">
                 <div className="text-center md:text-left mb-4 md:mb-0">
                   <h2 className="text-2xl font-bold text-white">
                     Class Timetable
@@ -408,15 +407,15 @@ export default function ShowTimetable() {
                     multi-period class is shown once (extra periods are not duplicated).
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-stretch lg:items-center gap-2 sm:gap-3 md:gap-4">
                   <a
                     href="/welcome"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-400 text-purple-900 font-bold hover:bg-yellow-500 transition"
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-yellow-400 text-purple-900 font-bold hover:bg-yellow-500 transition"
                   >
                     <ArrowLeft className="w-5 h-5" />
                     <span>Back</span>
                   </a>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-2">
                     <label
                       htmlFor="dept-select"
                       className="font-semibold text-white/90"
@@ -425,7 +424,7 @@ export default function ShowTimetable() {
                     </label>
                     <select
                       id="dept-select"
-                      className="px-4 py-2 rounded-md bg-purple-800/80 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50"
+                      className="min-w-0 px-3 sm:px-4 py-2 rounded-md bg-purple-800/80 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50"
                       value={selectedDepartment}
                       onChange={(e) => setSelectedDepartment(e.target.value)}
                       disabled={isLoading || !timetableData}
@@ -437,7 +436,7 @@ export default function ShowTimetable() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-2">
                     <label
                       htmlFor="batch-select"
                       className="font-semibold text-white/90"
@@ -446,7 +445,7 @@ export default function ShowTimetable() {
                     </label>
                     <select
                       id="batch-select"
-                      className="px-4 py-2 rounded-md bg-purple-800/80 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50"
+                      className="min-w-0 px-3 sm:px-4 py-2 rounded-md bg-purple-800/80 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50"
                       value={selectedBatch}
                       onChange={(e) => setSelectedBatch(e.target.value)}
                       disabled={
@@ -465,7 +464,7 @@ export default function ShowTimetable() {
                   <button
                     type="button"
                     onClick={handlePrint}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-400 text-purple-900 font-bold hover:bg-yellow-500 transition disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-yellow-400 text-purple-900 font-bold hover:bg-yellow-500 transition disabled:opacity-50"
                     disabled={isLoading || error}
                   >
                     <Printer className="w-5 h-5" />

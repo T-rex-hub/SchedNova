@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus, Trash2 } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
-
-const API_BASE = "http://127.0.0.1:8000";
+import { API_BASE } from "../config/api";
 
 const DAY_ORDER = {
   Monday: 0,
@@ -239,13 +238,13 @@ export default function Teachers() {
 
   return (
     <AppLayout>
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-2 sm:p-3 md:p-6 overflow-y-auto">
         <motion.div
           key="content"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="max-w-4xl mx-auto space-y-8 p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg"
+          className="max-w-5xl mx-auto space-y-6 md:space-y-8 p-3 sm:p-4 md:p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg"
         >
           <h3 className="text-xl font-semibold mb-4 text-center">
             Teacher & Department Management
@@ -263,21 +262,21 @@ export default function Teachers() {
             </div>
           )}
 
-          <div className="flex flex-col md:flex-row items-center gap-4 p-4 rounded-xl bg-purple-800/70">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 p-3 sm:p-4 rounded-xl bg-purple-800/70">
             <label
               htmlFor="teacherName"
-              className="text-lg font-medium whitespace-nowrap"
+              className="text-base sm:text-lg font-medium whitespace-nowrap"
             >
               Teacher Name:
             </label>
-            <div className="flex flex-1 gap-2">
+            <div className="flex flex-1 gap-2 min-w-0">
               <input
                 type="text"
                 id="teacherName"
                 value={newTeacherName}
                 onChange={(e) => setNewTeacherName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddTeacher()}
-                className="flex-1 px-4 py-2 rounded-md bg-purple-900/80 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="flex-1 min-w-0 px-4 py-2 rounded-md bg-purple-900/80 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Enter teacher's name..."
               />
               <motion.button
@@ -285,7 +284,7 @@ export default function Teachers() {
                 disabled={periodGrid.rows.length === 0}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 py-2 rounded-lg bg-yellow-400 text-purple-900 hover:bg-yellow-500 font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-4 sm:px-6 py-2 rounded-lg bg-yellow-400 text-purple-900 hover:bg-yellow-500 font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               >
                 <Plus className="w-5 h-5" />
               </motion.button>
@@ -452,12 +451,12 @@ export default function Teachers() {
         </motion.div>
       </main>
 
-      <div className="flex justify-between mt-8 p-8">
+      <div className="max-w-5xl mx-auto flex flex-col-reverse sm:flex-row justify-between gap-3 sm:gap-4 mt-6 md:mt-8 px-2 sm:px-3 md:px-0">
         <motion.a
           href="/departments"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -500,7 +499,7 @@ export default function Teachers() {
           }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
         >
           Next
           <svg

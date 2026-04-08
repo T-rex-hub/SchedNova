@@ -19,6 +19,7 @@ import {
   Linkedin,
   Github,
 } from "lucide-react";
+import { API_BASE } from "../config/api";
 
 // Debounce utility function to limit write operations to a backend
 const debounce = (func, delay) => {
@@ -86,7 +87,7 @@ export default function Groups() {
       try {
         const token = localStorage.getItem("token");
 
-        const res = await fetch("http://127.0.0.1:8000/batches/", {
+        const res = await fetch(`${API_BASE}/batches/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -105,7 +106,7 @@ export default function Groups() {
         }
 
         // Fetch departments
-        const deptRes = await fetch("http://127.0.0.1:8000/departments/with-subjects", {
+        const deptRes = await fetch(`${API_BASE}/departments/with-subjects`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -115,7 +116,7 @@ export default function Groups() {
         setDepartments(Array.isArray(deptData) ? deptData : []);
 
         // Fetch available room types
-        const roomRes = await fetch("http://127.0.0.1:8000/classrooms/", {
+        const roomRes = await fetch(`${API_BASE}/classrooms/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -315,7 +316,7 @@ export default function Groups() {
 
   return (
     <AppLayout>
-          <main className="flex-1 p-8 overflow-y-auto">
+          <main className="flex-1 p-2 sm:p-3 md:p-6 overflow-y-auto">
             <AnimatePresence>
               {isContentVisible && (
                 <motion.div
@@ -323,9 +324,9 @@ export default function Groups() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
-                  className="max-w-4xl mx-auto space-y-8 p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg"
+                  className="max-w-5xl mx-auto space-y-6 md:space-y-8 p-3 sm:p-4 md:p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg"
                 >
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex justify-between items-center gap-3 mb-4">
                     <h3 className="text-xl font-semibold">Group Management</h3>
                     <motion.button
                       onClick={() => setShowCreateGroup(!showCreateGroup)}
@@ -355,9 +356,9 @@ export default function Groups() {
                       return (
                         <div
                           key={deptId ?? dept.department_name}
-                          className="p-6 rounded-xl bg-purple-800/70 shadow-lg border border-purple-700"
+                          className="p-3 sm:p-4 md:p-6 rounded-xl bg-purple-800/70 shadow-lg border border-purple-700"
                         >
-                          <div className="flex justify-between items-center mb-4">
+                          <div className="flex justify-between items-center gap-2 mb-4">
                             <h4 className="text-2xl font-bold">{dept.department_name}</h4>
 
                             <motion.button
@@ -376,9 +377,9 @@ export default function Groups() {
                           {showCreateGroup &&
                             sameDeptId(selectedDepartment, deptId) && (
                             <div className="space-y-2 bg-purple-900/70 p-4 rounded-lg mb-4">
-                              <h4 className="text-lg font-semibold text-center mb-4">Create New Group</h4>
+                                <h4 className="text-base sm:text-lg font-semibold text-center mb-4">Create New Group</h4>
 
-                              <div className="flex flex-col md:flex-row items-start gap-4">
+                              <div className="flex flex-col lg:flex-row items-start gap-3 md:gap-4">
                                 <div className="w-full">
                                   <input
                                     type="text"
@@ -392,7 +393,7 @@ export default function Groups() {
 
                                 <div className="w-full space-y-2">
                                   {batchRows.map((row, index) => (
-                                    <div key={index} className="flex gap-3 items-center">
+                                    <div key={index} className="flex gap-2 sm:gap-3 items-center">
                                       <select
                                         value={String(row.batch_id || "")}
                                         onChange={(e) => {
@@ -432,7 +433,7 @@ export default function Groups() {
                                         }
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
-                                        className="p-2 rounded-lg bg-yellow-400 text-purple-900"
+                                        className="p-2 rounded-lg bg-yellow-400 text-purple-900 shrink-0"
                                       >
                                         <Plus className="w-4 h-4" />
                                       </motion.button>
@@ -444,7 +445,7 @@ export default function Groups() {
                                           }
                                           whileHover={{ scale: 1.1 }}
                                           whileTap={{ scale: 0.9 }}
-                                          className="p-2 rounded-lg bg-red-400 text-white"
+                                          className="p-2 rounded-lg bg-red-400 text-white shrink-0"
                                         >
                                           <Trash2 className="w-4 h-4" />
                                         </motion.button>
@@ -457,7 +458,7 @@ export default function Groups() {
                                   onClick={handleAddGroup}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className="p-3 self-center md:self-start rounded-lg bg-yellow-400 text-purple-900 font-bold transition-all hover:bg-yellow-500"
+                                  className="w-full lg:w-auto p-3 self-center lg:self-start rounded-lg bg-yellow-400 text-purple-900 font-bold transition-all hover:bg-yellow-500"
                                 >
                                   <Plus className="w-5 h-5" />
                                 </motion.button>
@@ -515,7 +516,7 @@ export default function Groups() {
                                               { roomType: "" },
                                             ])
                                           }
-                                          className="p-2 rounded bg-yellow-400 text-purple-900"
+                                          className="p-2 rounded bg-yellow-400 text-purple-900 shrink-0"
                                         >
                                           <Plus size={16} />
                                         </button>
@@ -527,7 +528,7 @@ export default function Groups() {
                                                 roomRows.filter((_, i) => i !== index)
                                               )
                                             }
-                                            className="p-2 rounded bg-red-400 text-white"
+                                            className="p-2 rounded bg-red-400 text-white shrink-0"
                                           >
                                             <Trash2 size={16} />
                                           </button>
@@ -549,10 +550,10 @@ export default function Groups() {
                                   key={group.id}
                                   className="p-4 rounded-lg bg-purple-900/60 border border-purple-700"
                                 >
-                                  <div className="flex justify-between items-center">
+                                  <div className="flex justify-between items-start gap-3">
                                     <div>
-                                      <p className="font-semibold">{group.name}</p>
-                                      <p className="text-sm text-white/60">
+                                      <p className="font-semibold break-words">{group.name}</p>
+                                      <p className="text-sm text-white/60 break-words">
                                         {group.room_types?.map(rt =>
                                           rt.replaceAll("_", " ").toUpperCase()
                                         ).join(", ")}
@@ -596,12 +597,12 @@ export default function Groups() {
           </main>
           
           {/* Navigation Buttons */}
-          <div className="max-w-4xl mx-auto flex justify-between mt-8">
+          <div className="max-w-5xl mx-auto flex flex-col-reverse sm:flex-row justify-between gap-3 sm:gap-4 mt-6 md:mt-8">
             <motion.a
               href="/batch"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]">
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
@@ -622,7 +623,7 @@ export default function Groups() {
                     })),
                   };
 
-                  await fetch("http://127.0.0.1:8000/groups/add", {
+                  await fetch(`${API_BASE}/groups/add`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
@@ -638,7 +639,7 @@ export default function Groups() {
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-bold transition-all bg-[#4A0D8D] hover:bg-[#6A00F4]"
             >
               Next
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

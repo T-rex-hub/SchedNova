@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
+import { API_BASE } from "../config/api";
 
 // --- Constants ---
 const COLORS = ["#FFD166", "#1D9AF0", "#FF6B6B", "#06D6A0", "#6A00F4", "#F79C66", "#9D4EDD", "#EF476F"];
@@ -43,7 +44,6 @@ export default function App() {
       alert("Not authenticated");
       return false;
     }
-    console.log("ROOM TOKEN:", token);
 
     // Guard: do not call backend if no rooms provided
     if (!Array.isArray(newRooms) || newRooms.length === 0) {
@@ -58,7 +58,7 @@ export default function App() {
     }));
 
 
-    const res = await fetch("http://127.0.0.1:8000/classrooms/add", {
+    const res = await fetch(`${API_BASE}/classrooms/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

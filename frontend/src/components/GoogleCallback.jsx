@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../config/api";
 
 export default function GoogleCallback() {
   const navigate = useNavigate();
@@ -11,10 +12,9 @@ export default function GoogleCallback() {
       try {
         console.log("🔵 Completing Google login via backend...");
 
-        const res = await fetch(
-          "http://127.0.0.1:8000/auth/google/callback",
-          { credentials: "include" }
-        );
+        const res = await fetch(`${API_BASE}/auth/google/callback`, {
+          credentials: "include",
+        });
 
         const data = await res.json();
         console.log("🔵 Backend response:", data);
