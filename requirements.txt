@@ -25,7 +25,7 @@ pycparser==2.23
 pydantic==2.11.9
 pydantic_core==2.33.2
 PyJWT==2.10.1
-psycopg==3.2.6
+psycopg[binary]==3.2.6
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 python-jose==3.5.0
