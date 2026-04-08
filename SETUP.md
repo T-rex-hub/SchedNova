@@ -52,3 +52,26 @@
   - Add periods/rooms/departments/teachers/batches/groups
   - Generate timetable works
   - Saved timetables list/load/delete works
+
+## 5) Deploy Backend on Railway
+
+This repo is pre-configured for Railway backend deployment with:
+- `railway.json`
+- `nixpacks.toml`
+- `Procfile`
+
+### Railway steps
+1. Create a new Railway project and link this GitHub repo.
+2. Add a PostgreSQL service in Railway.
+3. In backend service variables, set:
+   - `DATABASE_URL` (from Railway Postgres)
+   - `SECRET_KEY` (long random value)
+   - `CORS_ORIGINS` (your frontend URL, comma-separated if multiple)
+   - `GOOGLE_CLIENT_ID` (if Google auth is enabled)
+4. Deploy.
+5. Verify API:
+   - Open `https://<your-railway-domain>/docs`
+
+### Frontend note
+- If frontend is on Vercel, set:
+  - `VITE_API_BASE_URL=https://<your-railway-domain>`
