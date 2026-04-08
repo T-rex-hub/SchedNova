@@ -24,7 +24,7 @@ import Teachers from "./components/Teachers";
 import Groups from "./components/Groups";
 import Batches from "./components/Batches"
 import TimeTable from "./components/TimeTable";
-import ShowTimetable from "./components/ShowTimeTable";
+import ShowTimetable from "./components/ShowTimetable";
 import SavedTimetables from "./components/SavedTimetables";
 import ManageData from "./components/ManageData";
 
