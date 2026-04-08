@@ -57,8 +57,8 @@
 
 This repo is pre-configured for Railway backend deployment with:
 - `railway.json`
-- `nixpacks.toml`
-- `Procfile`
+- `Dockerfile`
+- `Procfile` (optional fallback)
 
 ### Railway steps
 1. Create a new Railway project and link this GitHub repo.
