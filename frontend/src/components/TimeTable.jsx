@@ -38,12 +38,20 @@ export default function TimeTable() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const msg =
+        let msg =
           typeof data.detail === "string"
             ? data.detail
             : data.detail?.message ||
               data.detail?.detail ||
               "Could not generate timetable.";
+
+        if (data?.detail && typeof data.detail === "object" && data.detail.debug) {
+          try {
+            msg += `\n\nFeasibility stats:\n${JSON.stringify(data.detail.debug, null, 2)}`;
+          } catch {
+            // ignore JSON stringify issues
+          }
+        }
         setGenerationStatus("Generation failed.");
         setErrorDetail(msg);
         return;

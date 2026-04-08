@@ -22,6 +22,49 @@ const tailwindColors = [
 const getColorClasses = (color) =>
   `bg-${color}-500/20 border-${color}-500 text-${color}-200`;
 
+const DAY_ORDER = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+/**
+ * Solver emits one row per occupied timeslot. For duration>1 the same session
+ * appears in consecutive slots — without dedup it looks like two lectures "together".
+ */
+function dedupeContinuousLectures(lectures) {
+  const dayRank = (d) => {
+    const i = DAY_ORDER.indexOf(d);
+    return i === -1 ? 99 : i;
+  };
+  const sorted = [...lectures].sort((a, b) => {
+    const da = dayRank(a.day) - dayRank(b.day);
+    if (da !== 0) return da;
+    return (a.slotIndex ?? 0) - (b.slotIndex ?? 0);
+  });
+  const out = [];
+  let prev = null;
+  for (const lec of sorted) {
+    const cont =
+      prev &&
+      lec.batchId === prev.batchId &&
+      lec.subject === prev.subject &&
+      lec.teacher === prev.teacher &&
+      lec.room === prev.room &&
+      lec.day === prev.day &&
+      typeof lec.slotIndex === "number" &&
+      typeof prev.slotIndex === "number" &&
+      lec.slotIndex === prev.slotIndex + 1;
+    if (!cont) out.push(lec);
+    prev = lec;
+  }
+  return out;
+}
+
 function buildViewModelFromPayload(timetablePayload) {
   const meta = timetablePayload.timeslots_meta || [];
   const lookups = timetablePayload.display_lookups || {};
@@ -31,17 +74,8 @@ function buildViewModelFromPayload(timetablePayload) {
     return null;
   }
 
-  const dayOrder = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ];
   const daysSet = new Set(meta.map((m) => m.day_of_week));
-  const days = dayOrder.filter((d) => daysSet.has(d));
+  const days = DAY_ORDER.filter((d) => daysSet.has(d));
 
   const slotNums = [...new Set(meta.map((m) => m.slot_number))].sort(
     (a, b) => a - b
@@ -77,6 +111,7 @@ function buildViewModelFromPayload(timetablePayload) {
       batchId: String(row.batch),
       day: cell.day,
       time: cell.time,
+      slotIndex: typeof t === "number" ? t : Number(t),
       subject:
         lookups.subjects?.[sid] ??
         lookups.subjects?.[String(sid)] ??
@@ -155,7 +190,8 @@ export default function ShowTimetable() {
 
         const subjectColorMap = new Map();
         let colorIndex = 0;
-        const lecturesWithColors = vm.lectures.map((lecture) => {
+        const deduped = dedupeContinuousLectures(vm.lectures);
+        const lecturesWithColors = deduped.map((lecture) => {
           if (!subjectColorMap.has(lecture.subject)) {
             const colorName = tailwindColors[colorIndex % tailwindColors.length];
             subjectColorMap.set(lecture.subject, getColorClasses(colorName));
@@ -259,9 +295,10 @@ export default function ShowTimetable() {
                   {time}
                 </div>
                 {days.map((day) => {
-                  const lecture = filteredLectures.find(
+                  const cellLectures = filteredLectures.filter(
                     (l) => l.day === day && l.time === time
                   );
+                  const lecture = cellLectures[0];
                   return (
                     <div
                       key={`${day}-${time}`}
@@ -271,22 +308,35 @@ export default function ShowTimetable() {
                           : "bg-purple-800/40"
                       }`}
                     >
-                      {lecture && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="flex flex-col text-left w-full p-1"
-                        >
-                          <p className="font-bold text-white text-xs">
-                            {lecture.subject}
-                          </p>
-                          <p className="text-white/80 text-xs">
-                            {lecture.teacher}
-                          </p>
-                          <p className="text-yellow-300/90 text-xs font-semibold mt-1">
-                            Room: {lecture.room}
-                          </p>
-                        </motion.div>
+                      {cellLectures.length > 0 && (
+                        <div className="flex flex-col gap-2 text-left w-full p-1">
+                          {cellLectures.length > 1 && (
+                            <p className="text-[10px] text-amber-200/90 font-semibold">
+                              Multiple entries in this slot — check data or regenerate.
+                            </p>
+                          )}
+                          {cellLectures.map((lec) => (
+                            <motion.div
+                              key={lec.id}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="flex flex-col"
+                            >
+                              <p className="text-[10px] text-white/55 mb-1">
+                                {lec.day} | {lec.time}
+                              </p>
+                              <p className="font-bold text-white text-xs">
+                                {lec.subject}
+                              </p>
+                              <p className="text-white/80 text-xs">
+                                {lec.teacher}
+                              </p>
+                              <p className="text-yellow-300/90 text-xs font-semibold mt-1">
+                                Room: {lec.room}
+                              </p>
+                            </motion.div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   );
@@ -318,8 +368,10 @@ export default function ShowTimetable() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3 }}
                     >
+                      <p className="text-[10px] text-white/55 mb-1">
+                        {lecture.day} | {lecture.time}
+                      </p>
                       <p className="font-bold text-white">{lecture.subject}</p>
-                      <p className="text-sm text-white/90">{lecture.time}</p>
                       <p className="text-sm text-white/80">{lecture.teacher}</p>
                       <p className="text-sm text-yellow-300/90 font-semibold mt-1">
                         Room: {lecture.room}
@@ -347,9 +399,15 @@ export default function ShowTimetable() {
           >
             <div className="p-6 bg-purple-900/50 backdrop-blur-md rounded-xl shadow-lg">
               <div className="flex flex-col md:flex-row justify-between items-center mb-6 no-print">
-                <h2 className="text-2xl font-bold text-white mb-4 md:mb-0">
-                  Class Timetable
-                </h2>
+                <div className="text-center md:text-left mb-4 md:mb-0">
+                  <h2 className="text-2xl font-bold text-white">
+                    Class Timetable
+                  </h2>
+                  <p className="text-xs text-white/45 mt-1 max-w-xl">
+                    Each column is a different day; each row is the same clock time. A
+                    multi-period class is shown once (extra periods are not duplicated).
+                  </p>
+                </div>
                 <div className="flex flex-wrap items-center gap-4">
                   <a
                     href="/welcome"

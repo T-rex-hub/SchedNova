@@ -104,6 +104,29 @@ def solve_timetable(request_data):
                 ) == per_week
             )
 
+    # Prevent repetitive back-to-back starts of same subject for a group.
+    # Continuous classes still work because they use duration via start->occupancy links.
+    for s in fixed_groups:
+        for group in fixed_groups[s]:
+            for day_start in range(0, max_t + 1, slots_per_day):
+                day_end = min(day_start + slots_per_day - 1, max_t)
+                for t in range(day_start, day_end):
+                    model.Add(
+                        sum(
+                            start_x[group, s, t, r, teacher]
+                            for r in rooms
+                            for teacher in subjects[s]["teachers"]
+                            if (group, s, t, r, teacher) in start_x
+                        )
+                        + sum(
+                            start_x[group, s, t + 1, r, teacher]
+                            for r in rooms
+                            for teacher in subjects[s]["teachers"]
+                            if (group, s, t + 1, r, teacher) in start_x
+                        )
+                        <= 1
+                    )
+
     # Link start_x to group_x occupancy
     for s in fixed_groups:
         duration = max(1, int(subjects[s].get("duration", 1)))

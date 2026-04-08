@@ -43,3 +43,40 @@ def get_classrooms(
     # Return unique classroom types only
     types = list({r.classroom_type for r in rooms})
     return types
+
+
+@router.get("/list")
+def list_classrooms(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    rows = db.query(Classroom).filter(Classroom.user_id == user.user_id).all()
+    return [
+        {
+            "classroom_id": r.classroom_id,
+            "room_code": r.room_code,
+            "classroom_type": r.classroom_type,
+        }
+        for r in rows
+    ]
+
+
+@router.delete("/{classroom_id}")
+def delete_classroom(
+    classroom_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    row = (
+        db.query(Classroom)
+        .filter(
+            Classroom.classroom_id == classroom_id,
+            Classroom.user_id == user.user_id,
+        )
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Classroom not found")
+    db.delete(row)
+    db.commit()
+    return {"message": "Classroom deleted", "classroom_id": classroom_id}

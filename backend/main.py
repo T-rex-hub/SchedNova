@@ -129,12 +129,29 @@ def solve_timetable_endpoint(
     solved = solve_timetable(request_data)
 
     if solved.get("status") != "OK":
+        # Provide quick stats to help diagnose infeasibility quickly.
+        debug_stats = {
+            "batches": len(raw_data.get("batches") or []),
+            "timeslots": len(raw_data.get("timeslots") or []),
+            "rooms": len(raw_data.get("rooms") or {}),
+            "subjects": len((raw_data.get("subjects") or {}).keys()),
+            "fixed_groups_subjects": len((raw_data.get("fixed_groups") or {}).keys()),
+        }
+        fg = raw_data.get("fixed_groups") or {}
+        try:
+            debug_stats["fixed_groups_total"] = sum(
+                len(v) for v in fg.values() if isinstance(v, list)
+            )
+        except Exception:
+            debug_stats["fixed_groups_total"] = None
+
         raise HTTPException(
             status_code=400,
             detail={
                 "message": "Solver could not find a feasible timetable. Relax constraints or add more rooms/teachers.",
                 "status": solved.get("status"),
                 "solve_time": solved.get("solve_time"),
+                "debug": debug_stats,
             },
         )
 

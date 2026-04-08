@@ -1,4 +1,5 @@
 from collections import defaultdict
+import math
 from sqlalchemy.orm import Session
 from . import models
 import json
@@ -12,6 +13,12 @@ DAY_ORDER = {
     "Saturday": 5,
     "Sunday": 6,
 }
+
+
+def _norm_room_type(room_type: str) -> str:
+    if room_type is None:
+        return ""
+    return str(room_type).strip().lower().replace(" ", "_")
 
 
 def _norm_time_part(t: str) -> str:
@@ -111,15 +118,17 @@ def _subject_defaults(db: Session, subject_id: int) -> tuple[str, int, int]:
     if not rts:
         return "Classroom", 3, duration
     room_type = rts[0].room_type
-    per_week = sum(rt.classes_per_week or 0 for rt in rts) or 3
-    # Prefer room-type specific duration for solver multi-slot sessions.
-    # If durations differ across room types, take the max to avoid under-blocking slots.
+    # UI/DB `classes_per_week` is total periods; solver needs starts/sessions per week.
+    total_periods_per_week = sum(rt.classes_per_week or 0 for rt in rts) or 3
+    # Prefer max duration among room-type variants to avoid under-blocking.
     try:
         durations = [max(1, int(getattr(rt, "duration", 1) or 1)) for rt in rts]
         duration_from_rts = max(durations) if durations else duration
     except Exception:
-        duration_from_rts = duration
-    return room_type, per_week, duration_from_rts
+        duration_from_rts = max(1, int(duration or 1))
+
+    sessions_per_week = int(math.ceil(total_periods_per_week / max(1, duration_from_rts)))
+    return room_type, sessions_per_week, duration_from_rts
 
 
 def _uf_find(uf: dict, x: int) -> int:
@@ -139,6 +148,8 @@ def _build_fixed_groups_from_db_groups(
     user_id: str,
     batch_subjects: dict[int, dict[int, int]],
     subj_to_batches: dict[int, set[int]],
+    variant_to_base_subject: dict[int, int],
+    variant_room_type: dict[int, str],
 ) -> dict[int, list[list[int]]]:
     """
     Solver expects fixed_groups[subject_id] = list of batch-id groups that must share
@@ -161,28 +172,48 @@ def _build_fixed_groups_from_db_groups(
         for sid in subj_to_batches
     }
 
+    base_to_variants: dict[int, list[int]] = defaultdict(list)
+    for sid, base_sid in variant_to_base_subject.items():
+        base_to_variants[base_sid].append(sid)
+
     for fg in fg_rows:
         g_batches = sorted({fb.batch_id for fb in fg.batches})
         if len(g_batches) < 2:
             continue
 
-        common_subjects = None
+        common_variant_subjects = None
         for b in g_batches:
             subs = set(batch_subjects.get(b, {}).keys())
-            common_subjects = subs if common_subjects is None else common_subjects & subs
-        if not common_subjects:
+            common_variant_subjects = (
+                subs if common_variant_subjects is None else common_variant_subjects & subs
+            )
+        if not common_variant_subjects:
             continue
 
-        for sid in common_subjects:
-            if sid not in uf_per_sid:
-                continue
-            uf = uf_per_sid[sid]
-            first = g_batches[0]
-            if first not in uf:
-                continue
-            for b in g_batches[1:]:
-                if b in uf:
-                    _uf_union(uf, first, b)
+        common_base_subjects = {
+            variant_to_base_subject[sid]
+            for sid in common_variant_subjects
+            if sid in variant_to_base_subject
+        }
+
+        allowed_room_types = {
+            _norm_room_type(rt) for rt in (fg.room_types or [])
+        }
+
+        for base_sid in common_base_subjects:
+            candidate_variants = base_to_variants.get(base_sid, [])
+            for sid in candidate_variants:
+                if sid not in uf_per_sid:
+                    continue
+                if allowed_room_types and _norm_room_type(variant_room_type.get(sid, "")) not in allowed_room_types:
+                    continue
+                uf = uf_per_sid[sid]
+                first = g_batches[0]
+                if first not in uf:
+                    continue
+                for b in g_batches[1:]:
+                    if b in uf:
+                        _uf_union(uf, first, b)
 
     merged: dict[int, list[list[int]]] = {}
     for sid, uf in uf_per_sid.items():
@@ -264,6 +295,10 @@ def fetch_timetable_data(db: Session, user_id: str) -> dict:
 
     # --- Subjects in user's departments ---
     subjects: dict[int, dict] = {}
+    base_to_variants: dict[int, list[int]] = defaultdict(list)
+    variant_to_base_subject: dict[int, int] = {}
+    variant_room_type: dict[int, str] = {}
+    next_variant_id = 1_000_000
     subject_rows = (
         db.query(models.Subject)
         .filter(models.Subject.department_id.in_(user_departments.keys()))
@@ -277,22 +312,74 @@ def fetch_timetable_data(db: Session, user_id: str) -> dict:
             .all()
             if ts.teacher_id in teachers
         ]
-        room_type, per_week, duration = _subject_defaults(db, s.subject_id)
-        subjects[s.subject_id] = {
-            "subject_name": s.subject_name,
-            "course_code": s.course_code,
-            "teachers": subj_teachers,
-            "room_type": room_type,
-            "per_week": per_week,
-            "duration": duration,
-        }
+        room_reqs = (
+            db.query(models.SubjectRoomType)
+            .filter_by(subject_id=s.subject_id)
+            .all()
+        )
+        if not room_reqs:
+            room_reqs = [None]
+
+        for rt in room_reqs:
+            if rt is not None and int(getattr(rt, "classes_per_week", 0) or 0) <= 0:
+                # Ignore zero-demand room-type rows to avoid forcing extra sessions.
+                continue
+            sid = next_variant_id
+            next_variant_id += 1
+
+            room_type = _norm_room_type(getattr(rt, "room_type", "classroom") or "classroom")
+            total_periods_per_week = int(getattr(rt, "classes_per_week", 0) or 0)
+            if total_periods_per_week <= 0:
+                total_periods_per_week = 1
+            duration = max(1, int(getattr(rt, "duration", s.duration or 1) or 1))
+            # Solver expects starts/sessions per week, not total periods.
+            per_week = int(math.ceil(total_periods_per_week / max(1, duration)))
+            if per_week <= 0:
+                per_week = 1
+
+            room_type_label = room_type.replace("_", " ").title()
+            subjects[sid] = {
+                "subject_name": f"{s.subject_name} ({room_type_label})",
+                "course_code": s.course_code,
+                "teachers": subj_teachers,
+                "room_type": room_type,
+                "per_week": per_week,
+                "duration": duration,
+            }
+            base_to_variants[s.subject_id].append(sid)
+            variant_to_base_subject[sid] = s.subject_id
+            variant_room_type[sid] = room_type
+
+        if s.subject_id not in base_to_variants:
+            # Fallback when all room-type rows are zero/invalid.
+            sid = next_variant_id
+            next_variant_id += 1
+            fallback_room_type, fallback_per_week, fallback_duration = _subject_defaults(db, s.subject_id)
+            subjects[sid] = {
+                "subject_name": s.subject_name,
+                "course_code": s.course_code,
+                "teachers": subj_teachers,
+                "room_type": _norm_room_type(fallback_room_type),
+                "per_week": max(1, int(fallback_per_week or 1)),
+                "duration": max(1, int(fallback_duration or 1)),
+            }
+            base_to_variants[s.subject_id].append(sid)
+            variant_to_base_subject[sid] = s.subject_id
+            variant_room_type[sid] = _norm_room_type(fallback_room_type)
 
     # Drop subjects with no assigned teacher (solver cannot place them)
     subjects = {sid: sd for sid, sd in subjects.items() if sd["teachers"]}
+    variant_to_base_subject = {
+        sid: base_sid for sid, base_sid in variant_to_base_subject.items() if sid in subjects
+    }
+    base_to_variants = {
+        base_sid: [sid for sid in sids if sid in subjects]
+        for base_sid, sids in base_to_variants.items()
+    }
 
     # --- Rooms ---
     rooms = {
-        r.room_code: r.classroom_type
+        r.room_code: _norm_room_type(r.classroom_type)
         for r in db.query(models.Classroom).filter_by(user_id=user_id).all()
     }
 
@@ -304,11 +391,15 @@ def fetch_timetable_data(db: Session, user_id: str) -> dict:
             continue
         bmap: dict[int, int] = {}
         for bs in db.query(models.BatchSubject).filter_by(batch_id=b.batch_id).all():
-            if bs.subject_id not in subjects:
+            variant_ids = base_to_variants.get(bs.subject_id, [])
+            if not variant_ids:
                 continue
-            _, default_pw, _ = _subject_defaults(db, bs.subject_id)
-            cpw = bs.classes_per_week if bs.classes_per_week else default_pw
-            bmap[bs.subject_id] = cpw
+            for sid in variant_ids:
+                # Keep room-type specific demand from subject_room_types when variants exist.
+                cpw = int(subjects[sid]["per_week"])
+                if len(variant_ids) == 1 and bs.classes_per_week:
+                    cpw = int(bs.classes_per_week)
+                bmap[sid] = max(cpw, 1)
         if not bmap:
             continue
         batches.append(b.batch_id)
@@ -333,7 +424,7 @@ def fetch_timetable_data(db: Session, user_id: str) -> dict:
             subj_to_batches[sid].add(bid)
 
     fixed_groups = _build_fixed_groups_from_db_groups(
-        db, user_id, batch_subjects, subj_to_batches
+        db, user_id, batch_subjects, subj_to_batches, variant_to_base_subject, variant_room_type
     )
 
     # --- Display lookups for UI ---
@@ -346,9 +437,7 @@ def fetch_timetable_data(db: Session, user_id: str) -> dict:
         for t in db.query(models.Teacher).filter_by(user_id=user_id).all()
     }
 
-    subject_lookup = {
-        s.subject_id: s.subject_name for s in subject_rows if s.subject_id in subjects
-    }
+    subject_lookup = {sid: sd["subject_name"] for sid, sd in subjects.items()}
 
     dept_lookup = {
         d.department_id: d.department_name for d in user_departments.values()

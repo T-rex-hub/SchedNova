@@ -9,6 +9,7 @@ import {
   Loader2,
   FileText,
   RefreshCw,
+  X,
 } from "lucide-react";
 import AppLayout from "./layout/AppLayout";
 
@@ -32,11 +33,45 @@ export default function SavedTimetables() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [confirmDeleteAllOpen, setConfirmDeleteAllOpen] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteTimetableById = useCallback(async (token, id) => {
+    const endpoints = [`${API_BASE}/timetable/${id}`, `${API_BASE}/timetables/${id}`];
+    let lastError = null;
+
+    for (const url of endpoints) {
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) return { ok: true, alreadyGone: false };
+
+      // If route exists but item is gone, treat as success for UI consistency.
+      if (res.status === 404) return { ok: true, alreadyGone: true };
+
+      // 405 usually means wrong endpoint shape; try next fallback route.
+      if (res.status === 405) {
+        lastError = new Error("Method not allowed");
+        continue;
+      }
+
+      const err = await res.json().catch(() => ({}));
+      lastError = new Error(err.detail || `HTTP ${res.status}`);
+      break;
+    }
+
+    throw lastError || new Error("Delete failed");
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setNotice("");
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE}/timetables`, {
@@ -61,24 +96,10 @@ export default function SavedTimetables() {
   }, [load]);
 
   const handleDelete = async (timetableId) => {
-    if (
-      !window.confirm(
-        "Delete this timetable? This cannot be undone."
-      )
-    ) {
-      return;
-    }
     setDeletingId(timetableId);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/timetable/${timetableId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-      }
+      const out = await deleteTimetableById(token, timetableId);
       setItems((prev) => prev.filter((t) => t.timetable_id !== timetableId));
       if (
         String(sessionStorage.getItem("lastTimetableId")) ===
@@ -86,10 +107,37 @@ export default function SavedTimetables() {
       ) {
         sessionStorage.removeItem("lastTimetableId");
       }
+      setNotice(out.alreadyGone ? "Timetable was already deleted." : "Timetable deleted successfully.");
     } catch (e) {
-      alert(e.message || "Delete failed");
+      setError(e.message || "Delete failed");
     } finally {
       setDeletingId(null);
+      setConfirmDeleteId(null);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    setError(null);
+    setNotice("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const ids = Array.isArray(items) ? items.map((t) => t.timetable_id) : [];
+
+      // Delete sequentially to keep UI/simple error handling.
+      for (const id of ids) {
+        await deleteTimetableById(token, id);
+      }
+
+      setItems([]);
+      sessionStorage.removeItem("lastTimetableId");
+      setNotice("All timetables deleted successfully.");
+      setConfirmDeleteAllOpen(false);
+    } catch (e) {
+      setError(e.message || "Delete all failed");
+    } finally {
+      setDeletingAll(false);
     }
   };
 
@@ -129,24 +177,43 @@ export default function SavedTimetables() {
                 </p>
               </div>
             </div>
-            <motion.button
-              type="button"
-              onClick={() => load()}
-              disabled={loading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-sm font-medium hover:bg-white/10 disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
-              Refresh
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <motion.button
+                type="button"
+                onClick={() => load()}
+                disabled={loading || deletingAll}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-sm font-medium hover:bg-white/10 disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </motion.button>
+
+              <motion.button
+                type="button"
+                onClick={() => setConfirmDeleteAllOpen(true)}
+                disabled={loading || items.length === 0 || deletingAll}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-400/30 bg-red-500/15 text-red-200 text-sm font-medium hover:bg-red-500/25 disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete all
+              </motion.button>
+            </div>
           </div>
 
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-500/15 border border-red-400/30 text-red-200 text-sm">
               {error}
+            </div>
+          )}
+          {notice && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-200 text-sm">
+              {notice}
             </div>
           )}
 
@@ -226,7 +293,7 @@ export default function SavedTimetables() {
                       </motion.button>
                       <motion.button
                         type="button"
-                        onClick={() => handleDelete(row.timetable_id)}
+                        onClick={() => setConfirmDeleteId(row.timetable_id)}
                         disabled={deletingId === row.timetable_id}
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
@@ -246,6 +313,95 @@ export default function SavedTimetables() {
             </ul>
           )}
         </motion.div>
+
+        {confirmDeleteId != null && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#2b1157] p-5 shadow-2xl">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-lg font-semibold">Delete timetable?</h3>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="text-white/60 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-white/70 mt-2">
+                This action cannot be undone.
+              </p>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="px-3 py-2 rounded-lg bg-white/10 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(confirmDeleteId)}
+                  disabled={deletingId === confirmDeleteId}
+                  className="px-3 py-2 rounded-lg bg-red-500/20 border border-red-400/30 text-red-200 text-sm disabled:opacity-60 inline-flex items-center gap-2"
+                >
+                  {deletingId === confirmDeleteId ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Confirm delete"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {confirmDeleteAllOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#2b1157] p-5 shadow-2xl">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-lg font-semibold">Delete all timetables?</h3>
+                <button
+                  type="button"
+                  onClick={() => !deletingAll && setConfirmDeleteAllOpen(false)}
+                  className="text-white/60 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-white/70 mt-2">
+                This will permanently remove all saved timetables. This action cannot be undone.
+              </p>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => !deletingAll && setConfirmDeleteAllOpen(false)}
+                  className="px-3 py-2 rounded-lg bg-white/10 text-sm"
+                  disabled={deletingAll}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteAll}
+                  disabled={deletingAll || items.length === 0}
+                  className="px-3 py-2 rounded-lg bg-red-500/20 border border-red-400/30 text-red-200 text-sm disabled:opacity-60 inline-flex items-center gap-2"
+                >
+                  {deletingAll ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Confirm delete all"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
