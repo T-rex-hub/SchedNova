@@ -25,9 +25,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # ---------------- CORS ----------------
 raw_cors_origins = os.getenv(
-    "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    "CORS_ORIGINS", "https://sched-nova.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
 )
 allow_origins = [o.strip() for o in raw_cors_origins.split(",") if o.strip()]
+
+# Hardcode the frontend as an emergency fallback if the Railway config fails
+if "https://sched-nova.vercel.app" not in allow_origins:
+    allow_origins.append("https://sched-nova.vercel.app")
 
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY env var is required")
