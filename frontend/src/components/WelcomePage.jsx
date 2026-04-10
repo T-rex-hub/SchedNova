@@ -65,13 +65,14 @@ export default function WelcomePage() {
       title: "Analytic & Reports",
       desc: "Visualize your schedules and track performance with detailed analytics.",
       icon: <BarChart3 className="w-10 h-10 mx-auto mb-4 text-yellow-300" />,
-      link: "/resources",
+      link: "/analytics",
     },
     {
-      title: "Subtitute Teacher",
-      desc: "EEasily assign substitute teachers for missed classes.",
-      icon: <UserCheck className="w-10 h-10 mx-auto mb-4 text-yellow-300" />,
-      link: "/courses",
+      title: "Substitute Teacher (Coming Soon)",
+      desc: "Easily assign substitute teachers for missed classes.",
+      icon: <UserCheck className="w-10 h-10 mx-auto mb-4 text-yellow-300/50" />,
+      link: "#",
+      disabled: true,
     },
     {
       title: "Manage Data",
@@ -79,7 +80,6 @@ export default function WelcomePage() {
       icon: <Database className="w-10 h-10 mx-auto mb-4 text-yellow-300" />,
       link: "/manage-data",
     },
-    
   ];
 
   return (
@@ -122,10 +122,12 @@ export default function WelcomePage() {
         {/* Features Section */}
         <div className="relative overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 px-10 md:px-20 mt-10 mb-16">
-            {features.map((feature, index) => (
-              <a key={index} href={feature.link}>
+            {features.map((feature, index) => {
+              const cardContent = (
                 <motion.div
-                  className="p-8 rounded-2xl bg-white/10 backdrop-blur-md text-center shadow-lg hover:scale-105 transition cursor-pointer h-full flex flex-col justify-between"
+                  className={`p-8 rounded-2xl bg-white/10 backdrop-blur-md text-center shadow-lg h-full flex flex-col justify-between ${
+                    feature.disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105 transition cursor-pointer"
+                  }`}
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 * (index + 1), duration: 1 }}
@@ -134,8 +136,16 @@ export default function WelcomePage() {
                   <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
                   <p className="text-gray-300 text-sm">{feature.desc}</p>
                 </motion.div>
-              </a>
-            ))}
+              );
+
+              return feature.disabled ? (
+                <div key={index}>{cardContent}</div>
+              ) : (
+                <a key={index} href={feature.link}>
+                  {cardContent}
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>

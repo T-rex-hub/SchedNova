@@ -27,6 +27,7 @@ import TimeTable from "./components/TimeTable";
 import ShowTimetable from "./components/ShowTimetable";
 import SavedTimetables from "./components/SavedTimetables";
 import ManageData from "./components/ManageData";
+import AnalyticsReport from "./components/AnalyticsReport";
 
 const isAuthenticated = () => {
   const token = localStorage.getItem("token");
@@ -322,6 +323,14 @@ export default function App() {
           element={
             <RequireAuth>
               <ManageData />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <RequireAuth>
+              <AnalyticsReport />
             </RequireAuth>
           }
         />
