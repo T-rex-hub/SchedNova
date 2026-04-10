@@ -63,7 +63,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                       ? "bg-white/20 text-white"
                       : "hover:bg-white/10 text-white/85"
                   }`}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={() => {
+                    if (window.innerWidth < 768) setSidebarOpen(false);
+                  }}
                 >
                   {item.icon}
                   <span className="text-sm md:text-base">{item.label}</span>

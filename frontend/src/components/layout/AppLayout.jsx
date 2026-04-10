@@ -9,7 +9,7 @@ export default function AppLayout({ children, hideSidebar = false }) {
   const bgGradient =
     "bg-gradient-to-b from-[#3B0D91] via-[#6A00F4] to-[#1D9AF0]";
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
 
   return (
     <div className={`flex flex-col min-h-screen text-white ${bgGradient}`}>
