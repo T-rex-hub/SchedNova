@@ -89,7 +89,7 @@ def google_login(data: dict, db: Session = Depends(get_db)):
         idinfo = id_token.verify_oauth2_token(
             token,
             requests.Request(),
-            os.getenv("GOOGLE_CLIENT_ID")
+            os.getenv("GOOGLE_CLIENT_ID", "1050359938315-tv3elrkp7ih5clc8u6odtsj6cjosdh9t.apps.googleusercontent.com")
         )
 
         email = idinfo.get("email")
