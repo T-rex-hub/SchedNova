@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../config/api";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function SignupForm({ switchToLogin, onSuccess }) {
   const [fullName, setFullName] = useState("");
@@ -52,50 +53,7 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    try {
-      if (!window.google) {
-        const script = document.createElement("script");
-        script.src = "https://accounts.google.com/gsi/client";
-        script.async = true;
-        script.defer = true;
-        document.body.appendChild(script);
 
-        await new Promise((resolve) => {
-          script.onload = resolve;
-        });
-      }
-
-      window.google.accounts.id.initialize({
-        client_id:
-          "1050359938315-tv3elrkp7ih5clc8u6odtsj6cjosdh9t.apps.googleusercontent.com",
-        callback: async (response) => {
-          const res = await fetch(`${API_BASE}/auth/google`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: response.credential }),
-          });
-          const data = await res.json();
-
-          if (!res.ok || data.error || !data.user_id) {
-            throw new Error(data.error || "Google signup failed");
-          }
-
-          localStorage.setItem("token", data.user_id);
-          localStorage.setItem("username", data.username || "");
-          if (typeof onSuccess === "function") {
-            onSuccess();
-          }
-          navigate("/welcome", { replace: true });
-        },
-      });
-
-      window.google.accounts.id.prompt();
-    } catch (err) {
-      console.error("Google signup failed", err);
-      setMessage("Google signup failed");
-    }
-  };
 
   return (
     <div className="flex flex-col justify-between h-[490px] w-full">
@@ -158,19 +116,41 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
           <hr className="flex-grow border-white/30" />
         </div>
 
-        <button
-          type="button"
-          onClick={handleGoogleSignup}
-          className="w-full py-3 rounded-full bg-white text-gray-800 font-semibold 
-                     flex items-center justify-center gap-2 hover:bg-gray-100 transition mb-4"
-        >
-          <img
-            src="https://www.svgrepo.com/show/475656/google-color.svg"
-            alt="Google"
-            className="w-5 h-5"
+        <div className="flex justify-center w-full mb-4">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                const res = await fetch(`${API_BASE}/auth/google`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ token: credentialResponse.credential }),
+                });
+                const data = await res.json();
+
+                if (!res.ok || data.error || !data.user_id) {
+                  throw new Error(data.error || "Google signup failed");
+                }
+
+                localStorage.setItem("token", data.user_id);
+                localStorage.setItem("username", data.username || "");
+                if (typeof onSuccess === "function") {
+                  onSuccess();
+                }
+                navigate("/welcome", { replace: true });
+              } catch (err) {
+                console.error("Google signup failed", err);
+                setMessage("Google signup failed");
+              }
+            }}
+            onError={() => {
+              console.error("Google Signup Failed");
+              setMessage("Google signup failed or was cancelled.");
+            }}
+            theme="filled_blue"
+            shape="pill"
+            text="signup_with"
           />
-          Continue with Google
-        </button>
+        </div>
         
         <p className="text-sm text-center">
           Already have an account?{" "}
