@@ -52,7 +52,6 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
     }
   };
 
-  /*
   const handleGoogleSignup = async () => {
     try {
       if (!window.google) {
@@ -97,7 +96,6 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
       setMessage("Google signup failed");
     }
   };
-  */
 
   return (
     <div className="flex flex-col justify-between h-[490px] w-full">
@@ -153,7 +151,7 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
 
       <div>
 
-        {/*
+        {/* Divider */}
         <div className="flex items-center my-3">
           <hr className="flex-grow border-white/30" />
           <span className="px-3 text-white/70 text-sm">OR</span>
@@ -173,7 +171,6 @@ export default function SignupForm({ switchToLogin, onSuccess }) {
           />
           Continue with Google
         </button>
-        */}
         
         <p className="text-sm text-center">
           Already have an account?{" "}

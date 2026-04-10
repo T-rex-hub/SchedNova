@@ -88,21 +88,18 @@ export default function LoginForm({ switchToSignup, onSuccess }) {
       <div>
 
         {/* Divider */}
-        {/*
         <div className="flex items-center my-3">
           <hr className="flex-grow border-white/30" />
           <span className="px-3 text-white/70 text-sm">OR</span>
           <hr className="flex-grow border-white/30" />
         </div>
-        */}
 
         {/* Google Login */}
-        {/*
        <button
          type="button"
          onClick={async () => {
            try {
-             / * Load Google Identity Services dynamically * /
+             /* Load Google Identity Services dynamically */
              if (!window.google) {
                const script = document.createElement("script");
                script.src = "https://accounts.google.com/gsi/client";
@@ -157,7 +154,6 @@ export default function LoginForm({ switchToSignup, onSuccess }) {
          />
          Continue with Google
        </button>
-       */}
         <p className="text-sm text-center">
           Don’t have an account?{" "}
           <span
