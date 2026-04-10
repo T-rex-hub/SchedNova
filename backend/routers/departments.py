@@ -107,3 +107,35 @@ def get_departments_with_subjects(
         })
 
     return result
+
+@router.delete("/{department_id}")
+def delete_department(
+    department_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    dept = db.query(models.Department).filter(
+        models.Department.department_id == department_id,
+        models.Department.user_id == user.user_id
+    ).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    db.delete(dept)
+    db.commit()
+    return {"status": "OK", "message": "Department deleted"}
+
+@router.delete("/subject/{subject_id}")
+def delete_subject(
+    subject_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    sub = db.query(models.Subject).filter(
+        models.Subject.subject_id == subject_id,
+        models.Subject.user_id == user.user_id
+    ).first()
+    if not sub:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    db.delete(sub)
+    db.commit()
+    return {"status": "OK", "message": "Subject deleted"}

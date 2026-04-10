@@ -79,3 +79,23 @@ def list_timeslots(
         }
         for ts in ordered
     ]
+
+
+@router.delete("/{timeslot_id}")
+def delete_timeslot(
+    timeslot_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    ts = db.query(models.Timeslot).filter(
+        models.Timeslot.timeslot_id == timeslot_id,
+        models.Timeslot.user_id == user.user_id
+    ).first()
+    
+    if not ts:
+        raise HTTPException(status_code=404, detail="Timeslot not found")
+        
+    db.delete(ts)
+    db.commit()
+    
+    return {"status": "OK", "message": "Timeslot deleted"}

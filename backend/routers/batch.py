@@ -85,3 +85,22 @@ def get_batches(
         })
 
     return result
+
+@router.delete("/{batch_id}")
+def delete_batch(
+    batch_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    batch = db.query(models.Batch).filter(
+        models.Batch.batch_id == batch_id,
+        models.Batch.user_id == user.user_id
+    ).first()
+    
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+        
+    db.delete(batch)
+    db.commit()
+    
+    return {"status": "OK", "message": "Batch deleted"}
